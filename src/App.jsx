@@ -1,28 +1,42 @@
-import { useEffect, useState } from 'react'
-import { testConnection } from './api/testApi'
-import './App.css'
+import { Routes, Route } from 'react-router-dom';
+import Sidebar from './components/Sidebar';
+import Dashboard from './pages/Dashboard';
+import Clients from './pages/Clients';
+import ClientDetails from './pages/ClientDetails';
+import Sessions from './pages/Sessions';
+import Packs from './pages/Packs';
+import Exercises from './pages/Exercises';
+
+//Componente raiz da aplicação.
 
 function App() {
-  const [status, setStatus] = useState('Testando conexão...');
-
-  useEffect(() => {
-    // Testa conexão com a API ao montar o componente
-    testConnection().then((sucess) => {
-      if (sucess) {
-        setStatus('✅ Conexão com API estabelecida! Vê a consola para detalhes.');
-      } else {
-        setStatus('❌ Falha ao conectar com a API. Verifica a consola para erros.');
-      }
-    });
-  }, []);
-
   return (
-    <div className="App">
-      <h1>PT Manager Frontend</h1>
-      <p>{status}</p>
-      <p>Abre a Consola do Browser (F12) para ver os logs das requisições</p>
+    <div className="min-h-screen bg-background text-foreground">
+      {/* Sidebar de navegação - fixa no desktop, sheet no mobile */}
+      <Sidebar />
+
+      {/* Área principal de conteúdo */}
+      <main className="lg:pl-64 min-h-screen">
+        <Routes>
+          {/* Dashboard- página inicial com estatísticas e visão geral */}
+          <Route path="/" element={<Dashboard />} />
+
+          {/* Clientes - lista, detalhes, agendamento e compra de packs */}
+          <Route path="/clients" element={<Clients />} />
+          <Route path="/clients/:id" element={<ClientDetails />} />
+
+          {/* Gestão de sessões */}
+          <Route path="/sessoes" element={<Sessions />} />
+
+          {/* Gestão de packs */}
+          <Route path="/packs" element={<Packs />} />
+
+          {/* Gestão de exercícios */}
+          <Route path="/exercicios" element={<Exercises />} />
+        </Routes>
+      </main>
     </div>
   );
 }
 
-export default App
+export default App;

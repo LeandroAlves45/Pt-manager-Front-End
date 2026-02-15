@@ -1,153 +1,164 @@
-import React, {useState} from "react";
-import {useClients} from "../hooks/useClients";
-import { createClient, archiveClient } from "../api/clientsApi";
-import { toast} from "react-toastify";
-import { set } from "react-hook-form";
+import { useState } from 'react';
+import { data, useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
+import { useClients } from '../hooks/useClients';
+import {
+  createClient,
+  archiveClient,
+  updateClient,
+  unarchiveClient,
+} from '../api/clientsApi';
+import ClientTable from '@/components/clients/ClientTable';
+import ClientFormDialog from '@/components/clients/ClientFormDialog';
 
 /**
- * Página de listagem e gestão de clientes
+ * Página de gestão de clientes.
+ *
+ * Esta é a página "smart" (container) - contém a lógica de negócio:
+ * - Busca dados via hook (useClients)
+ * - Gere estados dos dialogs (form aberto/fechado, cliente selecionado)
+ * - Executa operações CRUD via API
+ * - Mostra feedback ao utilizador (toast)
+ * - Delega a apresentação visual ao ClientTable e ClientFormDialog
+ *
+ * Padrão Container/Presentational:
+ * Clients (smart) → ClientTable (visual) + ClientFormDialog (visual)
  */
-const Clients = () => {
-    //Estado para filtros
-    const [filters, setFilters] = useState({Status: 1}); //1=ativos por padrão
-    
-    //Hook personalizado para obter clientes
-    const {clients, loading, error, refetch} = useClients(filters);
+export default function Clients() {
+  const navigate = useNavigate();
 
-    //Estado para novo cliente
-    const [showForm, setShowForm] = useState(false); const [formData, setFormData] = useState({ 
-        full_name: '',
-        phone: '',
-        email: '',
-    });
+  //Busca todos os clientes (sem filtro)
+  const { clients, loading, error, refetch } = useClients({});
 
-    /**
-     * Submete formulário para criar cliente
-     */
-    const handleSubmit = async (e) => {
-        e.preventDefault();
+  //Estado do dialog de formulário (aberto/fechado)
+  const [formOpen, setFormOpen] = useState(false);
 
-        try{
-            await createClient(formData);
-            toast.success('Cliente criado com sucesso!');
+  //Cliente atualmente selecionado para edição (null para criação)
+  const [selectedClient, setSelectedClient] = useState(null);
 
-            //Limpa formulário e fecha
-            setFormData({ full_name: '', phone: '', email: '' });
-            setShowForm(false);
+  // --- HANDLERS DE AÇÕES ---
 
-            //Recarrega lista de clientes
-            refetch();
-        } catch (err) {
-            toast.error(err.response?.data?.detail || 'Erro ao criar cliente');
-        }
-    };
+  //Abrir dialog para criar novo cliente
+  const handleAddClient = () => {
+    setSelectedClient(null); //Limpa seleção
+    setFormOpen(true); //Abre form
+  };
 
-    /**
-     * Arquiva cliente
-     */
-    const handleArchive = async (clientId) => {
-        if(window.confirm('Tem certeza que deseja arquivar este cliente?')) {
-            return;
-        }
+  // Abrir dialog para editar cliente existente
+  const handleEditClient = (client) => {
+    setSelectedClient(client); //Seleciona cliente
+    setFormOpen(true); //Abre form
+  };
 
-        try{
-            await archiveClient(clientId);
-            toast.success('Cliente arquivado com sucesso!');
-            refetch();
-        } catch (err) {
-            toast.error('Erro ao arquivar cliente');
-        }
-    };
+  //Navega para a página de detalhes do cliente
+  const handleViewClient = (client) => {
+    navigate(`/clients/${client.id}`); //Redireciona para detalhes
+  };
 
-    //Renderiza lista de clientes
-    if (loading) return <div>A carregar clientes...</div>;
-    if (error) return <div>Erro: {error}</div>;
+  //Submete o formulário de criação/edição
+  const handleSave = async (data) => {
+    try {
+      if (selectedClient) {
+        //Edição
+        await updateClient(selectedClient.id, data);
+        toast.success('Cliente atualizado com sucesso!');
+      } else {
+        //Criação
+        await createClient(data);
+        toast.success('Cliente criado com sucesso!');
+      }
+      setFormOpen(false); //Fecha form
+      refetch(); //Atualiza lista
+    } catch (error) {
+      toast.error(
+        error.response?.data?.detail || 'Ocorreu um erro ao salvar o cliente.'
+      );
+    }
+  };
 
+  //Arquivar ou reativa cliente
+  const handleToggleArchive = async (client) => {
+    try {
+      if (client.status === 'active') {
+        await archiveClient(client.id);
+        toast.success(`${client.full_name} arquivado com sucesso!`);
+      } else {
+        await unarchiveClient(client.id);
+        toast.success(`${client.full_name} reativado com sucesso!`);
+      }
+      refetch(); //Atualiza lista
+    } catch (error) {
+      toast.error(
+        error.response?.data?.detail ||
+          'Ocorreu um erro ao atualizar o status do cliente.'
+      );
+    }
+  };
+
+  // agendar sessão
+  const handleScheduleSession = (client) => {
+    // TODO: abrir dialog de agendar sessão com cliente pré-selecionado
+    navigate('/sessoes');
+  };
+
+  //comprar pack
+  const handlePurchasePack = (client) => {
+    // TODO: abrir dialog de compra de pack com cliente pré-selecionado
+    navigate('/packs');
+  };
+
+  // --- RENDERIZAÇÃO ---
+  if (error) {
     return (
-        <div className="clients-page">
-            <h1>Clientes</h1>
-
-            {/*Filtros*/}
-            <div className="filters">
-                <label>
-                    Status:
-                    <select
-                        value={filters.Status || ''}
-                        onChange={(e) => setFilters({...filters, Status: Number(e.target.value) })}
-                    >
-                        <option value="">Todos</option>
-                        <option value="1">Ativos</option>
-                        <option value="2">Arquivados</option>
-                    </select>
-                </label>
-            </div>
-
-            {/* Botão para adicionar cliente */}
-            <button onClick={() => setShowForm(!showForm)}>
-                {showForm ? 'Cancelar' : 'Adicionar Cliente'}
-            </button>
-
-            {/* Formulário para criar cliente */}
-            {showForm && (
-                <form onSubmit={handleSubmit}>
-                    <input
-                        type="text"
-                        placeholder="Nome Completo"
-                        value={formData.full_name}
-                        onChange={(e) => setFormData({...formData, full_name: e.target.value })}
-                        required
-                    />
-                    <input
-                        type="tel"
-                        placeholder="Telefone"
-                        value={formData.phone}
-                        onChange={(e) => setFormData({...formData, phone: e.target.value })}
-                        required
-                    />
-                    <input
-                        type="email"
-                        placeholder="Email"
-                        value={formData.email}
-                        onChange={(e) => setFormData({...formData, email: e.target.value })}
-                        required
-                    />
-                    <button type="submit">Criar Cliente</button>
-                </form>
-            )}
-
-            {/* Lista de clientes */}
-            <div className="clients-list">
-                {clients.length === 0 ? (
-                    <p>Nenhum cliente encontrado.</p>
-                ) : (
-                    clients.map(client => (
-                        <div key={client.id} className="client-card">
-                            <h3>{client.full_name}</h3>
-                            <p>Telefone: {client.phone}</p>
-                            <p>Email: {client.email}</p>
-                            <p>Status: {client.status}</p>
-
-                            {/*Pack ativo (se tiver)*/}
-                            {client.active_pack && (
-                                <div className="active-pack">
-                                    <p>Pack Ativo: {client.active_pack.pack_type_name}</p>
-                                    <p>
-                                        Sessões: {client.active_pack.sessions_used} / {client.active_pack.sessions_total}
-                                        {' '}(Restantes: {client.active_pack.sessions_remaining})
-                                    </p>
-                                </div>
-                            )}
-
-                            {/*Ações*/}
-                            <button onClick={() => handleArchive(client.id)}>
-                                Arquivar
-                            </button>
-                        </div>
-                    ))
-                )}
-            </div>
+      <div className="p-4 lg:p-6">
+        <div className="text-center py-12 text-destructive">
+          <p>Erro: {error}</p>
+          <Button onClick={refetch} className="mt-4">
+            Tentar novamente
+          </Button>
         </div>
+      </div>
     );
-};
+  }
+  return (
+    <div className="p-4 lg:p-6 flex flex-col gap-6">
+      {/* Header da página */}
+      <div>
+        <h1 className="text-2xl font-semibold text-foreground">Clientes</h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Gerir a lista de clientes
+        </p>
+      </div>
 
-export default Clients;
+      {loading ? (
+        //loading skeleton
+        <div className="space-y-3">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div
+              key={i}
+              className="h-14 rounded-lg bg-card border border-border animate-pulse"
+            />
+          ))}
+        </div>
+      ) : (
+        // Lista de clientes
+        <ClientTable
+          clients={clients}
+          onAddClient={handleAddClient}
+          onEditClient={handleEditClient}
+          onViewClient={handleViewClient}
+          onScheduleSession={handleScheduleSession}
+          onPurchasePack={handlePurchasePack}
+        />
+      )}
+
+      {/* Dialog de criação/edição */}
+      <ClientFormDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        client={selectedClient}
+        onSave={handleSave}
+      />
+    </div>
+  );
+}
