@@ -10,6 +10,7 @@ import {
 } from '../api/clientsApi';
 import ClientTable from '@/components/clients/ClientTable';
 import ClientFormDialog from '@/components/clients/ClientFormDialog';
+import { Button } from '@/components/ui/button';
 
 /**
  * Página de gestão de clientes.
@@ -52,7 +53,7 @@ export default function Clients() {
 
   //Navega para a página de detalhes do cliente
   const handleViewClient = (client) => {
-    navigate(`/clients/${client.id}`); //Redireciona para detalhes
+    navigate(`/clientes/${client.id}`); //Redireciona para detalhes
   };
 
   //Submete o formulário de criação/edição

@@ -103,7 +103,7 @@ function NavContent({ onNavigate }) {
  * - Mobile (<1024px): Escondida, acessível via botão hamburger que abre um Sheet (painel lateral)
  */
 
-export function Sidebar() {
+function Sidebar() {
   //Estado para controlar se o menu mobile está aberto
   const [open, setOpen] = useState(false);
 
@@ -149,3 +149,5 @@ export function Sidebar() {
     </>
   );
 }
+
+export default Sidebar;

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo } from 'react';
 import {
   Table,
   TableBody,
@@ -6,18 +6,18 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+} from '@/components/ui/table';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import {
-  DropDownMenu,
+  DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
   DropdownMenuItem,
   DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+} from '@/components/ui/dropdown-menu';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   MoreHorizontal,
   Search,
@@ -25,12 +25,13 @@ import {
   Edit,
   Eye,
   Archive,
-  AtchiveRestore,
+  ArchiveRestore,
   CalendarPlus,
   Package,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
-import { getInitials, getStatusColor, getStatusLabel } from "@/lib/helpers";
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { getInitials, getStatusColor, getStatusLabel } from '@/lib/helpers';
+import { Button } from '@/components/ui/button';
 
 /**
  * Tabela de clientes
@@ -51,8 +52,8 @@ export default function ClientTable({
   onPurchasePack,
 }) {
   //Estado Local de componente
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
 
   /**
    * useMemo para memoizar a lista filtrada de clientes, evitando cálculos desnecessários em cada renderização.
@@ -61,10 +62,10 @@ export default function ClientTable({
     let result = clients;
 
     //filtro de status
-    if (statusFilter === "active") {
-      result = result.filter((c) => c.Status === "active");
-    } else if (statusFilter === "archived") {
-      result = result.filter((c) => c.Status === "archived");
+    if (statusFilter === 'active') {
+      result = result.filter((c) => c.status === 'active');
+    } else if (statusFilter === 'archived') {
+      result = result.filter((c) => c.status === 'archived');
     }
 
     if (search.trim()) {
@@ -73,7 +74,7 @@ export default function ClientTable({
         (c) =>
           c.full_name.toLowerCase().includes(s) ||
           c.phone.toLowerCase().includes(s) ||
-          c.email.toLowerCase().includes(s),
+          c.email.toLowerCase().includes(s)
       );
     }
 
@@ -116,13 +117,13 @@ export default function ClientTable({
             value="active"
             className="data-[state=active]:bg-background data-[state=active]:text-foreground"
           >
-            Ativos ({clients.filter((c) => c.Status === "active").length})
+            Ativos ({clients.filter((c) => c.status === 'active').length})
           </TabsTrigger>
           <TabsTrigger
             value="archived"
             className="data-[state=active]:bg-background data-[state=active]:text-foreground"
           >
-            Arquivados ({clients.filter((c) => c.Status === "archived").length})
+            Arquivados ({clients.filter((c) => c.status === 'archived').length})
           </TabsTrigger>
         </TabsList>
       </Tabs>
@@ -196,7 +197,7 @@ export default function ClientTable({
                         variant="outline"
                         className="bg-primary/10 text-primary border-primary/20 text-xs"
                       >
-                        {client.active_pack.pack_type_name}{" "}
+                        {client.active_pack.pack_type_name}{' '}
                         <span className="ml-1 text-muted-foreground">
                           ({client.active_pack.sessions_used}/
                           {client.active_pack.sessions_total})
@@ -213,7 +214,7 @@ export default function ClientTable({
                   <TableCell>
                     <Badge
                       variant="outline"
-                      className={cn("text-xs", getStatusColor(client.status))}
+                      className={cn('text-xs', getStatusColor(client.status))}
                     >
                       {getStatusLabel(client.status)}
                     </Badge>
@@ -221,7 +222,7 @@ export default function ClientTable({
 
                   {/*Coluna: ações */}
                   <TableCell className="text-right">
-                    <DropDownMenu>
+                    <DropdownMenu>
                       {/* stopPropagation evita que o click no botão dispare o onClick da row */}
                       <DropdownMenuTrigger
                         asChild
@@ -279,24 +280,25 @@ export default function ClientTable({
                             onArchiveClient(client);
                           }}
                           className={
-                            client.status === "active"
-                              ? "text-destructive"
-                              : "text-success"
+                            client.status === 'active'
+                              ? 'text-destructive'
+                              : 'text-success'
                           }
                         >
-                          {client.status === "active" ? (
+                          {client.status === 'active' ? (
                             <>
                               <Archive className="h-4 w-4 mr-2" /> Arquivar
                               Cliente
                             </>
                           ) : (
                             <>
-                              <Check className="h-4 w-4 mr-2" /> Ativar Cliente
+                              <ArchiveRestore className="h-4 w-4 mr-2" /> Ativar
+                              Cliente
                             </>
                           )}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
-                    </DropDownMenu>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))

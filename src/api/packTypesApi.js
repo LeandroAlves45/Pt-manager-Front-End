@@ -7,8 +7,8 @@ import api from './axiosConfig';
  *@returns {Promise<Array>} Lista de tipos de packs
  */
 export const getPackTypes = async () => {
-    const response = await api.get('/api/v1/pack_types');
-    return response.data;
+  const response = await api.get('/api/v1/pack-types');
+  return response.data;
 };
 
 /**
@@ -17,8 +17,8 @@ export const getPackTypes = async () => {
  * @returns {Promise<Object>} Tipo de pack criado
  */
 export const createPackType = async (data) => {
-    const response = await api.post('/api/v1/pack_types', data);
-    return response.data;
+  const response = await api.post('/api/v1/pack-types', data);
+  return response.data;
 };
 
 /**
@@ -28,15 +28,15 @@ export const createPackType = async (data) => {
  * @returns {Promise<Object>} Tipo de pack atualizado
  */
 export const updatePackType = async (id, data) => {
-    const response = await api.put(`/api/v1/pack_types/${id}`, data);
-    return response.data;
+  const response = await api.put(`/api/v1/pack-types/${id}`, data);
+  return response.data;
 };
 
 /**
- * Elima um tipo de pack
+ * Elimina um tipo de pack
  * @param {string} id - ID do tipo de pack a ser eliminado
  * @returns {Promise<void>} Tipo de pack eliminado
  */
 export const deletePackType = async (id) => {
-    await api.delete(`/api/v1/pack_types/${id}`);
+  await api.delete(`/api/v1/pack-types/${id}`);
 };

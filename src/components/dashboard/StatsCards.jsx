@@ -1,5 +1,5 @@
-import { Users, CalendarDays, Package, TrendingUp } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Users, CalendarDays, Package, TrendingUp } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
 
 /**
  * Componente de cartões de estatísticas para o dashboard
@@ -10,45 +10,45 @@ import { Card, CardContent } from "@/components/ui/card";
  * Props:
  * @param {number} totalClients - Total de clientes
  * @param {number} sessionsToday - Total de sessões esta semana
- * @param {number} activePlans - Total de planos ativos
+ * @param {number} activePacks - Total de packs ativos
  * @param {number} totalSessions - Progresso médio do mês
  */
 
 export default function StatsCards({
   totalClients = 0,
   sessionsToday = 0,
-  activePlans = 0,
+  activePacks = 0,
   totalSessions = 0,
 }) {
   //Array de objetos para facilitar renderização dos cartões
   const stats = [
     {
-      label: "Clientes Ativos",
+      label: 'Clientes Ativos',
       value: totalClients,
       icon: Users,
-      color: "text-primary",
-      bgColor: "bg-primary/10",
+      color: 'text-primary',
+      bgColor: 'bg-primary/10',
     },
     {
-      label: "Sessões Hoje",
+      label: 'Sessões Hoje',
       value: sessionsToday,
       icon: CalendarDays,
-      color: "text-success",
-      bgColor: "bg-success/10",
+      color: 'text-success',
+      bgColor: 'bg-success/10',
     },
     {
-      label: "Packs Ativos",
+      label: 'Packs Ativos',
       value: activePacks,
       icon: Package,
-      color: "text-info",
-      bgColor: "bg-info/10",
+      color: 'text-info',
+      bgColor: 'bg-info/10',
     },
     {
-      label: "Sessões Mês",
+      label: 'Sessões Mês',
       value: totalSessions,
       icon: TrendingUp,
-      color: "text-warning",
-      bgColor: "bg-warning/10",
+      color: 'text-warning',
+      bgColor: 'bg-warning/10',
     },
   ];
 

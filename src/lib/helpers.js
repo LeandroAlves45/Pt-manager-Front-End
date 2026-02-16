@@ -2,8 +2,6 @@
  * Helpers centralizados para formatação e lógica de apresentação
  */
 
-import { arch } from "node:os";
-
 // FORMATAÇÃO DE DATAS
 
 /**
@@ -12,12 +10,12 @@ import { arch } from "node:os";
  * @returns {string} Data formatada (ex: "01/06/2024")
  **/
 export function formatDate(dateStr) {
-  if (!dateStr) return "";
+  if (!dateStr) return '';
   const date = new Date(dateStr);
-  return date.toLocaleDateString("pt-PT", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
+  return date.toLocaleDateString('pt-PT', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
   });
 }
 
@@ -27,14 +25,14 @@ export function formatDate(dateStr) {
  * @returns {string} Data formatada (ex: "01/06/2024 14:00")
  **/
 export function formatDateTime(dateStr) {
-  if (!dateStr) return "";
+  if (!dateStr) return '';
   const date = new Date(dateStr);
-  return date.toLocaleString("pt-PT", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
+  return date.toLocaleString('pt-PT', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
   });
 }
 
@@ -44,11 +42,11 @@ export function formatDateTime(dateStr) {
  * @returns {string} Hora formatada (ex: "14:00")
  **/
 export function formatTime(dateStr) {
-  if (!dateStr) return "";
+  if (!dateStr) return '';
   const date = new Date(dateStr);
-  return date.toLocaleTimeString("pt-PT", {
-    hour: "2-digit",
-    minute: "2-digit",
+  return date.toLocaleTimeString('pt-PT', {
+    hour: '2-digit',
+    minute: '2-digit',
   });
 }
 
@@ -58,7 +56,7 @@ export function formatTime(dateStr) {
  * @returns {string} Data relativa
  */
 export function formatRelativeDate(dateStr) {
-  if (!dateStr) return "";
+  if (!dateStr) return '';
   const date = new Date(dateStr);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
@@ -66,7 +64,7 @@ export function formatRelativeDate(dateStr) {
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
 
-  if (diffMins < 1) return "agora mesmo";
+  if (diffMins < 1) return 'agora mesmo';
   if (diffMins < 60) return `há ${diffMins} minutos`;
   if (diffHours < 24) return `há ${diffHours} horas`;
   if (diffDays < 7) return `há ${diffDays} dias`;
@@ -99,12 +97,12 @@ export function calculateAge(birthDate) {
  * @returns {string} Iniciais (ex: "João Silva" => "JS")
  */
 export function getInitials(name) {
-  if (!name) return "??";
+  if (!name) return '??';
   return name
-    .split(" ")
+    .split(' ')
     .filter(Boolean) // Remove espaços extras
     .map((word) => word[0])
-    .join("")
+    .join('')
     .toUpperCase();
 }
 
@@ -118,18 +116,18 @@ export function getInitials(name) {
 export function getStatusColor(status) {
   const colors = {
     //status da sessão
-    scheduled: "bg-primary/15 text-primary border-primary/20",
-    completed: "bg-success/15 text-success border-success/20",
-    canceled: "bg-muted text-muted border-muted",
-    missed: "bg-destructive/15 text-destructive border-destructive/20",
+    scheduled: 'bg-primary/15 text-primary border-primary/20',
+    completed: 'bg-success/15 text-success border-success/20',
+    canceled: 'bg-muted text-muted border-muted',
+    missed: 'bg-destructive/15 text-destructive border-destructive/20',
     //status do cliente
-    active: "bg-success/15 text-success border-success/20",
-    archived: "bg-muted text-muted-foreground border-muted",
+    active: 'bg-success/15 text-success border-success/20',
+    archived: 'bg-muted text-muted-foreground border-muted',
     //status do plano
-    draft: "bg-warning/15 text-warning border-warning/20",
-    published: "bg-success/15 text-success border-success/20",
+    draft: 'bg-warning/15 text-warning border-warning/20',
+    published: 'bg-success/15 text-success border-success/20',
   };
-  return colors[status] || "bg-muted text-muted-foreground border-muted";
+  return colors[status] || 'bg-muted text-muted-foreground border-muted';
 }
 
 /**
@@ -139,14 +137,14 @@ export function getStatusColor(status) {
  */
 export function getStatusLabel(status) {
   const labels = {
-    scheduled: "Agendada",
-    completed: "Concluída",
-    canceled: "Cancelada",
-    missed: "Falta",
-    active: "Ativo",
-    archived: "Arquivado",
-    draft: "Rascunho",
-    published: "Publicado",
+    scheduled: 'Agendada',
+    completed: 'Concluída',
+    canceled: 'Cancelada',
+    missed: 'Falta',
+    active: 'Ativo',
+    archived: 'Arquivado',
+    draft: 'Rascunho',
+    published: 'Publicado',
   };
   return labels[status] || status;
 }
@@ -158,10 +156,10 @@ export function getStatusLabel(status) {
  */
 export function getSexLabel(sex) {
   const labels = {
-    male: "Masculino",
-    female: "Feminino",
-    other: "Outro",
-    unknown: "Desconhecido",
+    male: 'Masculino',
+    female: 'Feminino',
+    other: 'Outro',
+    unknown: 'Desconhecido',
   };
-  return labels[sex] || "-";
+  return labels[sex] || '-';
 }

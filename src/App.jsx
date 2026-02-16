@@ -22,8 +22,8 @@ function App() {
           <Route path="/" element={<Dashboard />} />
 
           {/* Clientes - lista, detalhes, agendamento e compra de packs */}
-          <Route path="/clients" element={<Clients />} />
-          <Route path="/clients/:id" element={<ClientDetails />} />
+          <Route path="/clientes" element={<Clients />} />
+          <Route path="/clientes/:id" element={<ClientDetails />} />
 
           {/* Gestão de sessões */}
           <Route path="/sessoes" element={<Sessions />} />

@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
-import { getSessions } from "../api/sessionsApi";
+import { useState, useEffect, useCallback } from 'react';
+import { getSessions } from '../api/sessionApi';
 
 /**
  * Hook para gerir a lista de sessões de treino
@@ -20,8 +20,8 @@ export function useSessions(filters) {
       const data = await getSessions(filters);
       setSessions(data);
     } catch (err) {
-      setError(err.response?.data?.message || "Erro ao carregar sessões");
-      console.error("Erro ao buscar sessões:", err);
+      setError(err.response?.data?.message || 'Erro ao carregar sessões');
+      console.error('Erro ao buscar sessões:', err);
     } finally {
       setLoading(false);
     }

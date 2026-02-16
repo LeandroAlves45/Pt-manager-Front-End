@@ -3,6 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { getInitials, formatDate, getStatusColor } from '@/lib/helpers';
+import e from 'cors';
 
 /**
  * Lista as próximas sessões do cliente
@@ -10,7 +11,7 @@ import { getInitials, formatDate, getStatusColor } from '@/lib/helpers';
  *
  * @param {Array} sessions - Array de objetos de sessões, cada objeto deve conter:
  */
-export default function UpcomingSessions({ sessions = [] }) {
+function UpcomingSessions({ sessions = [] }) {
   //Filtra as sessões para mostrar apenas as próximas 5, ordenadas por data
   const upcomingSessions = sessions
     .filter(
@@ -26,13 +27,13 @@ export default function UpcomingSessions({ sessions = [] }) {
           Próximas Sessões
         </h3>
 
-        {upcoming.length === 0 ? (
+        {upcomingSessions.length === 0 ? (
           <p className="text-sm text-muted-foreground py-4 text-center">
             Sem sessões agendadas.
           </p>
         ) : (
           <div className="flex flex-col gap-3">
-            {upcoming.map((session) => (
+            {upcomingSessions.map((session) => (
               <div
                 key={session.id}
                 className="flex items-center gap-3 rounded-lg p-2.5 hover:bg-accent transition-colors"
@@ -80,3 +81,5 @@ export default function UpcomingSessions({ sessions = [] }) {
     </Card>
   );
 }
+
+export default UpcomingSessions;

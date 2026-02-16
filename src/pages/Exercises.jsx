@@ -35,7 +35,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal, Plus, Edit, Search, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { url } from 'node:inspector';
 
 export default function Exercises() {
   const [exercises, setExercises] = useState([]);

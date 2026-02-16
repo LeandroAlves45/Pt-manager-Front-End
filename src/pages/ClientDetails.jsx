@@ -1,14 +1,14 @@
-import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
-import { getClients } from "../api/clientsApi";
-import { getSessions } from "../api/sessionsApi";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, Mail, Phone, Calendar, Ruler, Target } from "lucide-react";
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
+import { getClients } from '../api/clientsApi';
+import { getSessions } from '../api/sessionApi';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Progress } from '@/components/ui/progress';
+import { ArrowLeft, Mail, Phone, Calendar, Ruler, Target } from 'lucide-react';
 import {
   getInitials,
   calculateAge,
@@ -16,8 +16,8 @@ import {
   getSexLabel,
   getStatusColor,
   getStatusLabel,
-} from "@/lib/helpers";
-import { set } from "react-hook-form";
+} from '@/lib/helpers';
+import { set } from 'react-hook-form';
 
 /**
  * Página de detalhes de um cliente
@@ -48,7 +48,7 @@ export default function ClientDetails() {
         const sessionsData = await getSessions({ Client_id: id });
         setSessions(sessionsData);
       } catch (error) {
-        toast.error("Erro ao carregar dados do cliente");
+        toast.error('Erro ao carregar dados do cliente');
       } finally {
         setLoading(false);
       }
@@ -71,7 +71,7 @@ export default function ClientDetails() {
     return (
       <div className="p-4 lg:p-6 text-center py-12">
         <p className="text-muted-foreground">Cliente não encontrado</p>
-        <Button onClick={() => navigate("/clients")} className="mt-4">
+        <Button onClick={() => navigate('/clients')} className="mt-4">
           Voltar
         </Button>
       </div>
@@ -89,7 +89,7 @@ export default function ClientDetails() {
       {/*Botão voltar */}
       <Button
         variant="ghost"
-        onClick={() => navigate("/clients")}
+        onClick={() => navigate('/clients')}
         className="w-fit text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="h-4 w-4 mr-2" /> Voltar aos Clientes
@@ -129,7 +129,7 @@ export default function ClientDetails() {
                 )}
                 {client.birth_date && (
                   <span className="flex items-center gap-2">
-                    <Calendar className="h-3.5 w-3.5" />{" "}
+                    <Calendar className="h-3.5 w-3.5" />{' '}
                     {calculateAge(client.birth_date)} anos (
                     {formatDate(client.birth_date)})
                   </span>
@@ -168,7 +168,7 @@ export default function ClientDetails() {
                   {client.active_pack.pack_type_name}
                 </span>
                 <span className="text-sm text-muted-foreground">
-                  {client.active_pack.sessions_used} /{" "}
+                  {client.active_pack.sessions_used} /{' '}
                   {client.active_pack.sessions_total} sessões usadas
                 </span>
               </div>
@@ -205,8 +205,8 @@ export default function ClientDetails() {
                       {formatDate(session.starts_at)}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {" "}
-                      {session.duration_minutes}min{" "}
+                      {' '}
+                      {session.duration_minutes}min{' '}
                       {session.location && `- ${session.location}`}
                     </p>
                   </div>
