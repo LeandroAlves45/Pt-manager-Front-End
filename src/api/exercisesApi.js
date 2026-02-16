@@ -18,6 +18,18 @@ export const getExercises = async (params = {}) => {
 };
 
 /**
+ * Busca um exercício específico por ID.
+ *
+ * @param {string} id - ID do exercício
+ * @returns {Promise<Object>} Detalhes do exercício
+ */
+
+export const getExercise = async (id) => {
+  const response = await api.get(`/api/v1/exercises/${id}/`);
+  return response.data;
+};
+
+/**
  * Cria um novo exercício
  *
  * @param {Object} data - Dados do exercício {name, muscles...}
@@ -31,11 +43,21 @@ export const createExercise = async (data) => {
 /**
  * Atualiza um exercício existente
  *
- * @param {string} id - ID do exercicio
+ * @param {string} exercise_id - ID do exercício
  * @param {Object} data - Dados do exercício a atualizar (mesmos campos de createExercise)
  * @returns {Promise<Object>} Exercício atualizado
  */
-export const updateExercise = async (id, data) => {
-  const response = await api.put(`/api/v1/exercises/${id}/`, data);
+export const updateExercise = async (exercise_id, data) => {
+  const response = await api.put(`/api/v1/exercises/${exercise_id}/`, data);
   return response.data;
+};
+
+/**
+ * Remove um exercício.
+ *
+ * @param {string} exerciseId - ID do exercício
+ * @returns {Promise<void>}
+ */
+export const deleteExercise = async (exerciseId) => {
+  await api.delete(`/api/v1/exercises/${exerciseId}/`);
 };

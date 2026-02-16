@@ -7,6 +7,7 @@ import {
   Package,
   Dumbbell,
   Menu,
+  Activity,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getInitials } from '@/lib/helpers';
@@ -27,11 +28,13 @@ import logoImg from '@/assets/logo.png';
  */
 
 const navItems = [
-  { label: 'Dashboard', href: '/', icon: LayoutDashboard },
+  { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { label: 'Clientes', href: '/clientes', icon: Users },
   { label: 'Sessões', href: '/sessoes', icon: CalendarDays },
   { label: 'Packs', href: '/packs', icon: Package },
-  { label: 'Exercícios', href: '/exercicios', icon: Dumbbell },
+  { label: 'Exercícios', href: '/exercicios', icon: Activity },
+  { label: 'Planos de treino', href: '/planos-de-treino', icon: Dumbbell },
+  ,
 ];
 
 //Nome do trainer (no futuro, isso deve vir do contexto de autenticação)
@@ -52,8 +55,8 @@ function NavContent({ onNavigate }) {
   return (
     <div className="flex h-full flex-col">
       {/* Logo e nome do trainer no topo */}
-      <div className="flex items-center gap-3 px-4 py-6">
-        <img src={logoImg} alt="Logo" className="h-8 w-auto" />
+      <div className="flex items-center justify-center gap-3 px-4 py-8">
+        <img src={logoImg} alt="Logo" className="h-25 w-auto" />
       </div>
 
       {/*Lista de links de navegação */}

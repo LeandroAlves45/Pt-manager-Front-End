@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { data, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { useClients } from '../hooks/useClients';
 import {
@@ -8,8 +8,10 @@ import {
   updateClient,
   unarchiveClient,
 } from '../api/clientsApi';
+import { purchasePack } from '../api/packsApi';
 import ClientTable from '@/components/clients/ClientTable';
 import ClientFormDialog from '@/components/clients/ClientFormDialog';
+import PackPurchaseDialog from '@/components/packs/PackPurchaseDialog';
 import { Button } from '@/components/ui/button';
 
 /**
@@ -23,7 +25,7 @@ import { Button } from '@/components/ui/button';
  * - Delega a apresentação visual ao ClientTable e ClientFormDialog
  *
  * Padrão Container/Presentational:
- * Clients (smart) → ClientTable (visual) + ClientFormDialog (visual)
+ * Clients (smart) → ClientTable (visual) + ClientFormDialog  (visual) + PackPurchaseDialog (visual)
  */
 export default function Clients() {
   const navigate = useNavigate();
@@ -33,6 +35,7 @@ export default function Clients() {
 
   //Estado do dialog de formulário (aberto/fechado)
   const [formOpen, setFormOpen] = useState(false);
+  const [packDialogOpen, setPackDialogOpen] = useState(false); // Dialog de atribuir pack
 
   //Cliente atualmente selecionado para edição (null para criação)
   const [selectedClient, setSelectedClient] = useState(null);
@@ -105,7 +108,37 @@ export default function Clients() {
   //comprar pack
   const handlePurchasePack = (client) => {
     // TODO: abrir dialog de compra de pack com cliente pré-selecionado
-    navigate('/packs');
+    setSelectedClient(client); // Define cliente selecionado
+    setPackDialogOpen(true); // Abre dialog de pack
+  };
+
+  // HANDLER DE COMPRA DE PACK
+  /**
+   * Processa a atribuição de um pack ao cliente.
+   *
+   * Fluxo:
+   * 1. Recebe clientId e packTypeId do dialog
+   * 2. Chama API para criar a compra
+   * 3. Mostra feedback de sucesso/erro
+   * 4. Atualiza lista de clientes (refetch)
+   *
+   * @param {string} clientId - ID do cliente
+   * @param {string} packTypeId - ID do tipo de pack
+   */
+
+  const handlePackPurchase = async (clientId, packTypeId) => {
+    try {
+      // TODO: chamar API para criar compra de pack
+      await purchasePack(clientId, { pack_type_id: packTypeId });
+      toast.success('Pack atribuído com sucesso!');
+      refetch(); // Atualiza lista de clientes para refletir novo pack
+    } catch (error) {
+      toast.error(
+        error.response?.data?.detail ||
+          'Ocorreu um erro ao atribuir o pack ao cliente.'
+      );
+      throw error; // Re-throw para permitir tratamento adicional no dialog, se necessário
+    }
   };
 
   // --- RENDERIZAÇÃO ---
@@ -113,7 +146,7 @@ export default function Clients() {
     return (
       <div className="p-4 lg:p-6">
         <div className="text-center py-12 text-destructive">
-          <p>Erro: {error}</p>
+          <p>Erro ao carregar clientes: {error}</p>
           <Button onClick={refetch} className="mt-4">
             Tentar novamente
           </Button>
@@ -131,6 +164,7 @@ export default function Clients() {
         </p>
       </div>
 
+      {/* LOADING STATE */}
       {loading ? (
         //loading skeleton
         <div className="space-y-3">
@@ -142,7 +176,7 @@ export default function Clients() {
           ))}
         </div>
       ) : (
-        // Lista de clientes
+        // TABELA DE CLIENTES
         <ClientTable
           clients={clients}
           onAddClient={handleAddClient}
@@ -150,6 +184,7 @@ export default function Clients() {
           onViewClient={handleViewClient}
           onScheduleSession={handleScheduleSession}
           onPurchasePack={handlePurchasePack}
+          onArchiveClient={handleToggleArchive}
         />
       )}
 
@@ -159,6 +194,14 @@ export default function Clients() {
         onOpenChange={setFormOpen}
         client={selectedClient}
         onSave={handleSave}
+      />
+
+      {/* DIALOG DE ATRIBUIÇÃO DE PACK */}
+      <PackPurchaseDialog
+        open={packDialogOpen}
+        onOpenChange={setPackDialogOpen}
+        client={selectedClient}
+        onPurchase={handlePackPurchase}
       />
     </div>
   );

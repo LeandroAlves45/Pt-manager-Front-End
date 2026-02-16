@@ -1,11 +1,13 @@
-import { useState, useMemo, use } from 'react';
+import { useState, useMemo } from 'react';
 import { toast } from 'react-toastify';
 import { useSessions } from '@/hooks/useSessions';
 import {
+  createSession,
   completeSession,
   markSessionMissed,
   cancelSession,
 } from '@/api/sessionApi';
+import SessionFormDialog from '@/components/sessions/SessionFormDialog';
 import {
   Table,
   TableBody,
@@ -32,7 +34,6 @@ import {
   CalendarPlus,
   CheckCircle,
   XCircle,
-  AlertCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -54,6 +55,9 @@ export default function Sessions() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
+  // Estado do dialog de criação
+  const [formOpen, setFormOpen] = useState(false);
+
   //Filtra sessões por status e pesquisa
   const filtered = useMemo(() => {
     let result = sessions;
@@ -67,6 +71,58 @@ export default function Sessions() {
   }, [sessions, search, statusFilter]);
 
   //Ações de sessão
+
+  /**
+   * Abre o dialog para agendar nova sessão.
+   */
+  const handleScheduleSession = () => {
+    setFormOpen(true);
+  };
+
+  /**
+   * Cria uma nova sessão de treino.
+   *
+   * Recebe dados do formulário já formatados:
+   * - client_id: UUID do cliente
+   * - starts_at: Data/hora em formato ISO
+   * - duration_minutes: Número (minutos)
+   * - location: String ou null
+   * - notes: String ou null
+   *
+   * @param {Object} sessionData - Dados da sessão a criar
+   */
+
+  const handleSave = async (sessionData) => {
+    try {
+      //Extrai client_id do payload
+      const { client_id, ...data } = sessionData;
+      await createSession(client_id, data);
+      toast.success('Sessão agendada com sucesso');
+      setFormOpen(false);
+      try {
+        await refetch(); //Atualiza lista após criação
+      } catch (e) {
+        toast.error(
+          e.response?.data?.message || 'Erro ao atualizar lista de sessões'
+        );
+        window.location.reload(); //Fallback: recarrega página se refetch falhar
+      }
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Erro ao agendar sessão');
+    }
+  };
+
+  /**
+   * Marca uma sessão como concluída.
+   *
+   * Efeitos:
+   * - Status muda para "completed"
+   * - Consome 1 sessão do pack do cliente
+   * - Atualiza contadores de sessões usadas
+   *
+   * @param {Object} session - Sessão a concluir
+   */
+
   const handleComplete = async (session) => {
     try {
       await completeSession(session.id);
@@ -77,28 +133,82 @@ export default function Sessions() {
     }
   };
 
+  /**
+   * Marca uma sessão como falta.
+   *
+   * Efeitos:
+   * - Status muda para "missed"
+   * - Consome 1 sessão do pack do cliente
+   * - Regista falta no histórico
+   *
+   * @param {Object} session - Sessão a marcar como falta
+   */
+
   const handleMissed = async (session) => {
     try {
       await markSessionMissed(session.id);
       toast.success(`Falta registada para ${session.client_name}`);
-      refetch();
+      try {
+        await refetch(); //Atualiza lista após criação
+      } catch (e) {
+        toast.error(
+          e.response?.data?.message || 'Erro ao atualizar lista de sessões'
+        );
+        window.location.reload(); //Fallback: recarrega página se refetch falhar
+      }
     } catch (e) {
       toast.error(e.response?.data?.message || 'Erro ao marcar falta');
     }
   };
 
+  /**
+   * Cancela uma sessão agendada.
+   *
+   * Efeitos:
+   * - Status muda para "cancelled"
+   * - NÃO consome sessão do pack
+   * - Pode ser reagendada posteriormente
+   *
+   * @param {Object} session - Sessão a cancelar
+   */
+
   const handleCancel = async (session) => {
     try {
       await cancelSession(session.id);
       toast.success(`Sessão de ${session.client_name} cancelada`);
-      refetch();
+      try {
+        await refetch(); //Atualiza lista após cancelamento
+      } catch (e) {
+        toast.error(
+          e.response?.data?.message || 'Erro ao atualizar lista de sessões'
+        );
+        window.location.reload(); //Fallback: recarrega página se refetch falhar
+      }
     } catch (e) {
       toast.error(e.response?.data?.message || 'Erro ao cancelar sessão');
     }
   };
 
+  // ============================================================================
+  // RENDERIZAÇÃO
+  // ============================================================================
+
+  if (error) {
+    return (
+      <div className="p-4 lg:p-6">
+        <div className="text-center py-12 text-destructive">
+          <p>Erro ao carregar sessões: {error}</p>
+          <Button onClick={refetch} className="mt-4">
+            Tentar novamente
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-4 lg:p-6 flex flex-col gap-6">
+      {/* HEADER DA PÁGINA */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">Sessões</h1>
@@ -106,12 +216,22 @@ export default function Sessions() {
             Gerir sessões de treino
           </p>
         </div>
+
+        {/* BOTÃO: Nova Sessão */}
+        <Button
+          onClick={handleScheduleSession}
+          className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2"
+        >
+          <CalendarPlus className="h-4 w-4" />
+          Nova Sessão
+        </Button>
       </div>
 
-      {/* Filtros e pesquisa */}
+      {/* FILTROS E PESQUISA */}
       <div className="flex flex-col sm:flex-row gap-3">
+        {/* Campo de pesquisa */}
         <div className="relative w-full sm:w-80">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
           <Input
             placeholder="Pesquisar por cliente..."
             value={search}
@@ -119,6 +239,8 @@ export default function Sessions() {
             className="pl-9 bg-background border-input text-foreground"
           />
         </div>
+
+        {/* Tabs de filtro por status */}
         <Tabs value={statusFilter} onValueChange={setStatusFilter}>
           <TabsList className="bg-secondary">
             <TabsTrigger
@@ -149,8 +271,9 @@ export default function Sessions() {
         </Tabs>
       </div>
 
-      {/* Tabela de sessões */}
+      {/* TABELA DE SESSÕES */}
       {loading ? (
+        // Loading skeleton - mostra placeholders enquanto carrega
         <div className="space-y-3">
           {[1, 2, 3, 4, 5].map((i) => (
             <div
@@ -160,6 +283,7 @@ export default function Sessions() {
           ))}
         </div>
       ) : (
+        // Tabela com dados reais
         <div className="rounded-xl border border-border overflow-hidden">
           <Table>
             <TableHeader>
@@ -182,6 +306,7 @@ export default function Sessions() {
             </TableHeader>
             <TableBody>
               {filtered.length === 0 ? (
+                // Estado vazio - nenhuma sessão encontrada
                 <TableRow>
                   <TableCell
                     colSpan={6}
@@ -191,11 +316,13 @@ export default function Sessions() {
                   </TableCell>
                 </TableRow>
               ) : (
+                // Lista de sessões
                 filtered.map((session) => (
                   <TableRow
                     key={session.id}
                     className="border-border hover:bg-accent/50"
                   >
+                    {/* COLUNA: Cliente */}
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <Avatar className="h-8 w-8">
@@ -208,15 +335,23 @@ export default function Sessions() {
                         </span>
                       </div>
                     </TableCell>
+
+                    {/* COLUNA: Data/Hora (hidden em mobile) */}
                     <TableCell className="text-sm text-muted-foreground hidden sm:table-cell">
                       {formatDateTime(session.starts_at)}
                     </TableCell>
+
+                    {/* COLUNA: Duração (hidden em mobile e tablet) */}
                     <TableCell className="text-sm text-muted-foreground hidden md:table-cell">
                       {session.duration_minutes} min
                     </TableCell>
+
+                    {/* COLUNA: Local (hidden em mobile, tablet e desktop pequeno) */}
                     <TableCell className="text-sm text-muted-foreground hidden lg:table-cell">
-                      {session.location || 'Local não informado'}
+                      {session.location || 'Não especificado'}
                     </TableCell>
+
+                    {/* COLUNA: Status */}
                     <TableCell>
                       <Badge
                         variant="outline"
@@ -228,8 +363,10 @@ export default function Sessions() {
                         {getStatusLabel(session.status)}
                       </Badge>
                     </TableCell>
+
+                    {/* COLUNA: Ações */}
                     <TableCell className="text-right">
-                      {/* Só mostra ações para sessões agendadas */}
+                      {/* Ações disponíveis apenas para sessões agendadas */}
                       {session.status === 'scheduled' && (
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -245,23 +382,31 @@ export default function Sessions() {
                             align="end"
                             className="bg-popover border-border"
                           >
+                            {/* Ação: Concluir */}
                             <DropdownMenuItem
                               onClick={() => handleComplete(session)}
                             >
-                              <CheckCircle className="h-4 w-4 mr-2 text-success" />{' '}
+                              <CheckCircle className="h-4 w-4 mr-2 text-success" />
                               Concluir
                             </DropdownMenuItem>
+
+                            {/* Ação: Marcar Falta */}
                             <DropdownMenuItem
                               onClick={() => handleMissed(session)}
                             >
-                              <XCircle className="h-4 w-4 mr-2" /> Marcar Falta
+                              <XCircle className="h-4 w-4 mr-2" />
+                              Marcar Falta
                             </DropdownMenuItem>
+
                             <DropdownMenuSeparator className="bg-border" />
+
+                            {/* Ação: Cancelar */}
                             <DropdownMenuItem
                               onClick={() => handleCancel(session)}
                               className="text-destructive"
                             >
-                              <XCircle className="h-4 w-4 mr-2" /> Cancelar
+                              <XCircle className="h-4 w-4 mr-2" />
+                              Cancelar
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -274,6 +419,13 @@ export default function Sessions() {
           </Table>
         </div>
       )}
+
+      {/* DIALOG DE CRIAÇÃO DE SESSÃO */}
+      <SessionFormDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        onSave={handleSave}
+      />
     </div>
   );
 }

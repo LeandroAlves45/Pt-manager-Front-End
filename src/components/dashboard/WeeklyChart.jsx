@@ -41,7 +41,7 @@ export default function WeeklyChart({ sessions = [] }) {
     const diffDays = Math.floor((sessionDate - monday) / (1000 * 60 * 60 * 24));
     if (diffDays >= 0 && diffDays < 7) {
       const sessionDay = sessionDate.getDay(); //0 (Dom) a 6 (Sáb)
-      counts[day] = (counts[day] || 0) + 1; //Incrementa a contagem para o dia da semana
+      counts[sessionDay] = (counts[sessionDay] || 0) + 1; //Incrementa a contagem para o dia da semana
     }
   });
 

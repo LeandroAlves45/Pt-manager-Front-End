@@ -230,7 +230,7 @@ export default function Exercises() {
                             variant="outline"
                             className="text-sm text-primary hover:underline flex items-center gap-1"
                           >
-                            {m.trim()}
+                            {muscle.trim()}
                           </Badge>
                         ))}
                       </div>

@@ -10,8 +10,8 @@ import api from './axiosConfig';
  * @return {Promise<Array>} Lista de sessões de treino
  */
 export const getSessions = async (params = {}) => {
-    const response = await api.get('/api/v1/sessions', { params });
-    return response.data;
+  const response = await api.get('/api/v1/sessions', { params });
+  return response.data;
 };
 
 /**
@@ -25,8 +25,11 @@ export const getSessions = async (params = {}) => {
  * @returns {Promise<Object>} Sessão de treino criada
  */
 export const createSession = async (clientId, sessionData) => {
-    const response = await api.post(`/api/v1/sessions/${clientId}`, sessionData);
-    return response.data;
+  const response = await api.post(
+    `/api/v1/sessions/clients/${clientId}`,
+    sessionData
+  );
+  return response.data;
 };
 
 /**
@@ -36,8 +39,8 @@ export const createSession = async (clientId, sessionData) => {
  * @returns {Promise<Object>} Sessão de treino atualizada
  */
 export const updateSession = async (sessionId, sessionData) => {
-    const response = await api.put(`/api/v1/sessions/${sessionId}`, sessionData);
-    return response.data;
+  const response = await api.put(`/api/v1/sessions/${sessionId}`, sessionData);
+  return response.data;
 };
 
 /**
@@ -46,8 +49,8 @@ export const updateSession = async (sessionId, sessionData) => {
  * @returns {Promise<Object>} Sessão de treino atualizada
  */
 export const completeSession = async (sessionId) => {
-    const response = await api.post(`/api/v1/sessions/${sessionId}/complete`);
-    return response.data;
+  const response = await api.post(`/api/v1/sessions/${sessionId}/complete`);
+  return response.data;
 };
 
 /**
@@ -56,8 +59,8 @@ export const completeSession = async (sessionId) => {
  * @returns {Promise<Object>} Sessão de treino atualizada com status "missed"
  */
 export const markSessionMissed = async (sessionId) => {
-    const response = await api.post(`/api/v1/sessions/${sessionId}/missed`);
-    return response.data;
+  const response = await api.post(`/api/v1/sessions/${sessionId}/missed`);
+  return response.data;
 };
 
 /**
@@ -66,6 +69,6 @@ export const markSessionMissed = async (sessionId) => {
  * @returns {Promise<Object>} Sessão de treino atualizada com status "cancelled"
  */
 export const cancelSession = async (sessionId) => {
-    const response = await api.post(`/api/v1/sessions/${sessionId}/cancel`);
-    return response.data;
+  const response = await api.post(`/api/v1/sessions/${sessionId}/cancel`);
+  return response.data;
 };
