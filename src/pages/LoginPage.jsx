@@ -18,7 +18,7 @@ import { toast } from 'react-toastify';
 import { Dumbbell, Eye, EyeOff, Loader2 } from 'lucide-react';
 
 import { useAuth } from '@/context/AuthContext';
-import { Button } from '@chakra-ui/react';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import {

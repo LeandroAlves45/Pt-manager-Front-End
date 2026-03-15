@@ -17,12 +17,15 @@
 
 import { Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute';
+// Páginas públicas
 import LoginPage from './pages/LoginPage';
+import TrainerSignupPage from './pages/TrainerSignupPage';
 
-// ---------------------------------------------------------------
-// Páginas do Trainer — já construídas (mantidas, apenas reencaminhadas)
-// ---------------------------------------------------------------
-import TrainerLayout from '@/layouts/TrainerLayout';
+// Layouts
+import TrainerLayout from './layouts/TrainerLayout';
+import AdminLayout from './layouts/AdminLayout';
+
+// Páginas do Trainer
 import Dashboard from './pages/Dashboard';
 import Clients from './pages/Clients';
 import ClientDetails from './pages/ClientDetails';
@@ -30,22 +33,17 @@ import Sessions from './pages/Sessions';
 import Packs from './pages/Packs';
 import Exercises from './pages/Exercises';
 import TrainingPlans from './pages/TrainingPlans';
+import BillingPage from './pages/trainer/BillingPage';
+import TrainerProfilePage from './pages/trainer/TrainerProfilePage';
 
-// ---------------------------------------------------------------
-// Páginas de Admin e Cliente — placeholders até à Fase 2/3
-// ---------------------------------------------------------------
+// Páginas de Admin
+import AdminDashboard from './pages/admin/AdminDashboard';
+import AdminTrainers from './pages/admin/AdminTrainers';
 
-function AdminLayout() {
-  return (
-    <div className="min-h-screen flex items-center justify-center">
-      <p className="text-muted-foreground">Admin Dashboard (em construção)</p>
-    </div>
-  );
-}
-
+// Placeholder para o portal do cliente — a construir na Fase 3
 function ClientPlaceholder() {
   return (
-    <div className="min-h-screen flex items-center justify-center">
+    <div className="min-h-screen bg-background flex items-center justify-center">
       <p className="text-muted-foreground">Client Dashboard (em construção)</p>
     </div>
   );
@@ -63,13 +61,14 @@ export default function App() {
       {/* Página de login — acessível a todos */}
       <Route path="/login" element={<LoginPage />} />
 
+      {/* Página de registo de trainers — acessível a todos */}
+      <Route path="/signup" element={<TrainerSignupPage />} />
+
       {/* Raiz redireciona para login — nunca deve ficar em / */}
       <Route path="/" element={<Navigate to="/login" replace />} />
 
       {/* ============================================================
-                ROTAS DO TRAINER — requerem role="trainer"
-                O ProtectedRoute verifica autenticação e role antes de
-                renderizar o TrainerLayout.
+                ROTAS DO TRAINER 
             ============================================================ */}
 
       <Route
@@ -100,7 +99,13 @@ export default function App() {
         <Route path="exercicios" element={<Exercises />} />
 
         {/* Gestão de planos de treino */}
-        <Route path="planos-de-treino" element={<TrainingPlans />} />
+        <Route path="planos" element={<TrainingPlans />} />
+
+        {/* Página de faturação e subscrição */}
+        <Route path="billing" element={<BillingPage />} />
+
+        {/* Página de perfil do trainer */}
+        <Route path="perfil" element={<TrainerProfilePage />} />
 
         {/* Página de nutrição */}
         <Route
@@ -130,29 +135,10 @@ export default function App() {
             </div>
           }
         />
-
-        <Route
-          path="billing"
-          element={
-            <div className="p-6 text-muted-foreground">
-              Billing — em construção
-            </div>
-          }
-        />
-
-        <Route
-          path="perfil"
-          element={
-            <div className="p-6 text-muted-foreground">
-              Perfil — em construção
-            </div>
-          }
-        />
       </Route>
 
       {/* ============================================================
                 ROTAS DO SUPERUSER — requerem role="superuser"
-                Fase 2 — layouts e páginas de admin a construir
             ============================================================ */}
 
       <Route
@@ -162,7 +148,16 @@ export default function App() {
             <AdminLayout />
           </ProtectedRoute>
         }
-      />
+      >
+        {/* Redireciona /admin para /admin/dashboard */}
+        <Route index element={<Navigate to="dashboard" replace />} />
+
+        {/* Dashboard de administração */}
+        <Route path="dashboard" element={<AdminDashboard />} />
+
+        {/* Gestão de trainers */}
+        <Route path="trainers" element={<AdminTrainers />} />
+      </Route>
 
       {/* ============================================================
                 ROTAS DO CLIENTE — requerem role="client"
