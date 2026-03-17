@@ -11,7 +11,7 @@
  */
 
 import { useEffect, useState } from 'react';
-import { getMySupplements } from '@/api/supplementsApi';
+import { getMySupplements } from '@/api/supplementApi';
 import { Pill, Clock, Beaker } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';

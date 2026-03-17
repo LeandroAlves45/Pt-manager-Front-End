@@ -6,9 +6,9 @@ import { getSessions } from '../api/sessionApi';
 import {
   getClientSupplements,
   assignSupplement,
-  removeSupplementAssignment,
+  removeClientAssignment,
   getSupplements,
-} from '@/api/supplementsApi';
+} from '@/api/supplementApi';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -124,7 +124,7 @@ export default function ClientDetails() {
   // Remove uma atribuição existente
   const handleRemoveAssignment = async (assignmentId, name) => {
     try {
-      await removeSupplementAssignment(id, assignmentId);
+      await removeClientAssignment(id, assignmentId);
       toast.success(`Suplemento "${name}" removido.`);
       setAssignments((prev) => prev.filter((a) => a.id !== assignmentId));
     } catch {
