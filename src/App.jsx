@@ -36,7 +36,7 @@ import Exercises from './pages/Exercises';
 import TrainingPlans from './pages/TrainingPlans';
 import BillingPage from './pages/trainer/BillingPage';
 import TrainerProfilePage from './pages/trainer/TrainerProfilePage';
-import SupplementsPage from './pages/trainer/SupplementsPage';
+import SupplementsPage from './pages/trainer/SupplementPage';
 
 // Páginas de Admin
 import AdminDashboard from './pages/admin/AdminDashboard';
