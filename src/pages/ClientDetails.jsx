@@ -3,12 +3,30 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { getClients } from '../api/clientsApi';
 import { getSessions } from '../api/sessionApi';
+import {
+  getClientSupplements,
+  assignSupplement,
+  removeSupplementAssignment,
+  getSupplements,
+} from '@/api/supplementsApi';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
-import { ArrowLeft, Mail, Phone, Calendar, Ruler, Target } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  ArrowLeft,
+  Mail,
+  Phone,
+  Calendar,
+  Ruler,
+  Target,
+  Pill,
+  Plus,
+  X,
+} from 'lucide-react';
 import {
   getInitials,
   calculateAge,
@@ -25,8 +43,9 @@ import { set } from 'react-hook-form';
  * Acedida via rota / clientes/:id
  * Use Params() extrai o :id da URL.
  *
- * Mostra: informações pessoais, sessões, progresso, status.
+ * Mostra: informações pessoais, sessões, progresso, status e suplementos atribuídos.
  */
+
 export default function ClientDetails() {
   //useParams extrai parâmetros dinâmicos da URL
   const { id } = useParams();
@@ -34,6 +53,13 @@ export default function ClientDetails() {
   const [client, setClient] = useState(null);
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Estado dos suplementos atribuídos ao cliente (SU-04)
+  const [assignments, setAssignments] = useState([]); // suplementos já atribuídos
+  const [catalogue, setCatalogue] = useState([]); // catálogo do Personal Trainer para o select
+  const [suppLoading, setSuppLoading] = useState(false);
+  const [selectedSuppId, setSelectedSuppId] = useState(''); // ID seleccionado no dropdown
+  const [assigning, setAssigning] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -55,6 +81,61 @@ export default function ClientDetails() {
     };
     fetchData();
   }, [id]);
+
+  // Carrega suplementos atribuídos e catálogo quando a página abre
+  useEffect(() => {
+    if (!id) return;
+    const fetchSupplements = async () => {
+      setSuppLoading(true);
+      try {
+        const [assignedData, catalogueData] = await Promise.all([
+          getClientSupplements(id),
+          getSupplements(false), // apenas activos
+        ]);
+        setAssignments(assignedData);
+        setCatalogue(catalogueData);
+      } catch {
+        // silencioso — o componente mostra "sem suplementos"
+      } finally {
+        setSuppLoading(false);
+      }
+    };
+    fetchSupplements();
+  }, [id]);
+
+  // Atribui o suplemento seleccionado ao cliente
+  const handleAssign = async () => {
+    if (!selectedSuppId) return;
+    setAssigning(true);
+    try {
+      await assignSupplement(id, { supplement_id: selectedSuppId });
+      toast.success('Suplemento atribuído.');
+      setSelectedSuppId('');
+      // Recarrega a lista de atribuídos
+      const updated = await getClientSupplements(id);
+      setAssignments(updated);
+    } catch {
+      toast.error('Erro ao atribuir suplemento. Pode já estar atribuído.');
+    } finally {
+      setAssigning(false);
+    }
+  };
+
+  // Remove uma atribuição existente
+  const handleRemoveAssignment = async (assignmentId, name) => {
+    try {
+      await removeSupplementAssignment(id, assignmentId);
+      toast.success(`Suplemento "${name}" removido.`);
+      setAssignments((prev) => prev.filter((a) => a.id !== assignmentId));
+    } catch {
+      toast.error('Erro ao remover suplemento.');
+    }
+  };
+
+  // Suplementos do catálogo que ainda não foram atribuídos — evita duplicados no select
+  const unassignedSupplements = catalogue.filter(
+    (s) => !assignments.some((a) => a.supplement_id === s.id)
+  );
 
   if (loading) {
     return (
@@ -179,6 +260,88 @@ export default function ClientDetails() {
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">Nenhum pack ativo</p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Painel de suplementos atribuídos (SU-04) */}
+      <Card className="bg-card border-border">
+        <CardContent className="p-6 space-y-4">
+          <div className="flex items-center gap-2">
+            <Pill className="h-4 w-4 text-muted-foreground" />
+            <h2 className="text-sm font-medium text-foreground">
+              Suplementação ({assignments.length})
+            </h2>
+          </div>
+
+          {/* Select + botão para atribuir novo suplemento */}
+          {unassignedSupplements.length > 0 && (
+            <div className="flex gap-2">
+              <select
+                className="flex-1 h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                value={selectedSuppId}
+                onChange={(e) => setSelectedSuppId(e.target.value)}
+              >
+                <option value="">Selecciona um suplemento...</option>
+                {unassignedSupplements.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+              <Button
+                size="sm"
+                onClick={handleAssign}
+                disabled={!selectedSuppId || assigning}
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                {assigning ? 'A atribuir...' : 'Atribuir'}
+              </Button>
+            </div>
+          )}
+
+          {/* Lista de suplementos atribuídos */}
+          {suppLoading ? (
+            <p className="text-sm text-muted-foreground">A carregar...</p>
+          ) : assignments.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Nenhum suplemento atribuído a este cliente.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {assignments.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between py-2 border-b border-border last:border-0"
+                >
+                  <div>
+                    <p className="text-sm font-medium text-foreground">
+                      {item.supplement_name}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {/* Mostra dose específica do cliente, ou a do catálogo como fallback */}
+                      {item.dose || item.supplement_serving_size
+                        ? `Dose: ${item.dose || item.supplement_serving_size}`
+                        : ''}
+                      {item.timing_notes || item.supplement_timing
+                        ? ` · ${item.timing_notes || item.supplement_timing}`
+                        : ''}
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                    onClick={() =>
+                      handleRemoveAssignment(item.id, item.supplement_name)
+                    }
+                    title="Remover suplemento"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              ))}
+            </div>
           )}
         </CardContent>
       </Card>

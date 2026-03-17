@@ -24,6 +24,7 @@ import TrainerSignupPage from './pages/TrainerSignupPage';
 // Layouts
 import TrainerLayout from './layouts/TrainerLayout';
 import AdminLayout from './layouts/AdminLayout';
+import ClientLayout from './layouts/ClientLayout';
 
 // Páginas do Trainer
 import Dashboard from './pages/Dashboard';
@@ -35,19 +36,18 @@ import Exercises from './pages/Exercises';
 import TrainingPlans from './pages/TrainingPlans';
 import BillingPage from './pages/trainer/BillingPage';
 import TrainerProfilePage from './pages/trainer/TrainerProfilePage';
+import SupplementsPage from './pages/trainer/SupplementsPage';
 
 // Páginas de Admin
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminTrainers from './pages/admin/AdminTrainers';
 
-// Placeholder para o portal do cliente — a construir na Fase 3
-function ClientPlaceholder() {
-  return (
-    <div className="min-h-screen bg-background flex items-center justify-center">
-      <p className="text-muted-foreground">Client Dashboard (em construção)</p>
-    </div>
-  );
-}
+// Páginas do Cliente
+import ClientDashboard from './pages/client/ClientDashboard';
+import MyTrainingPlan from './pages/client/MyTrainingPlan';
+import MyNutrition from './pages/client/MyNutrition';
+import MyCheckIns from './pages/client/MyCheckins';
+import MySupplements from './pages/client/MySupplements';
 
 // Componente raiz da aplicação.
 
@@ -127,14 +127,8 @@ export default function App() {
           }
         />
 
-        <Route
-          path="suplementos"
-          element={
-            <div className="p-6 text-muted-foreground">
-              Suplementos — em construção
-            </div>
-          }
-        />
+        {/* Catálogo de suplementos do Personal Trainer */}
+        <Route path="suplementos" element={<SupplementsPage />} />
       </Route>
 
       {/* ============================================================
@@ -165,13 +159,31 @@ export default function App() {
             ============================================================ */}
 
       <Route
-        path="/client/*"
+        path="/cliente/*"
         element={
           <ProtectedRoute requiredRole="client">
-            <ClientPlaceholder />
+            <ClientLayout />
           </ProtectedRoute>
         }
-      />
+      >
+        {/* Redireciona /cliente para /cliente/dashboard */}
+        <Route index element={<Navigate to="dashboard" replace />} />
+
+        {/* Dashboard principal do cliente */}
+        <Route path="dashboard" element={<ClientDashboard />} />
+
+        {/* Plano de treino do cliente */}
+        <Route path="plano" element={<MyTrainingPlan />} />
+
+        {/* Plano de nutrição do cliente */}
+        <Route path="nutricao" element={<MyNutrition />} />
+
+        {/* Check-ins do cliente */}
+        <Route path="checkins" element={<MyCheckIns />} />
+
+        {/* Suplementação do cliente */}
+        <Route path="suplementos" element={<MySupplements />} />
+      </Route>
 
       {/* Fallback para rotas desconhecidas — redireciona para login */}
       <Route path="*" element={<Navigate to="/login" replace />} />
