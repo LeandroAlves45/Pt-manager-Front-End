@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { matchesSearch } from '@/utils/validators';
 import {
   Table,
   TableBody,
@@ -70,12 +71,7 @@ export default function ClientTable({
 
     if (search.trim()) {
       const s = search.toLowerCase();
-      result = result.filter(
-        (c) =>
-          c.full_name.toLowerCase().includes(s) ||
-          c.phone.toLowerCase().includes(s) ||
-          c.email.toLowerCase().includes(s)
-      );
+      result = result.filter((c) => matchesSearch(s, c.full_name, c.phone, c.email));
     }
 
     return result;

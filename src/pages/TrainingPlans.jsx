@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { matchesSearch } from '@/utils/validators';
 import { toast } from 'react-toastify';
 import { useTrainingPlans } from '@/hooks/useTrainingPlans';
 import { useClients } from '@/hooks/useClients';
@@ -76,10 +77,7 @@ export default function TrainingPlans() {
     if (search.trim()) {
       const q = search.toLowerCase();
       const client = clients.find((c) => c.id === plan.client_id);
-      return (
-        plan.name.toLowerCase().includes(q) ||
-        client?.full_name.toLowerCase().includes(q)
-      );
+      return matchesSearch(q, plan.name, client?.full_name);
     }
     return true;
   });

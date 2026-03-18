@@ -11,7 +11,8 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
-import { set, useForm } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
+import { hexColorRules } from '@/utils/validators';
 import { toast } from 'react-toastify';
 import { Upload, Trash2, Loader2, Palette } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -270,11 +271,7 @@ export default function TrainerProfilePage() {
                   value={colorPreview}
                   className="font-mono uppercase max-w-32"
                   {...register('primary_color', {
-                    required: 'A cor é obrigatória',
-                    pattern: {
-                      value: /^#([0-9A-Fa-f]{6})$/,
-                      message: 'Formato inválido. Use #RRGGBB',
-                    },
+                    ...hexColorRules,
                     onChange: (e) => setColorPreview(e.target.value),
                   })}
                 />

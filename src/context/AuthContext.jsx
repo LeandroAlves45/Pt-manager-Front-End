@@ -24,58 +24,13 @@ import {
 } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axiosConfig';
+import { hexToHSL } from '../utils/formatters';
 
 // ============================================================
 // Criação do contexto de autenticação - valor por defeito é null
 // ============================================================
 
 const AuthContext = createContext(null);
-
-// ============================================================
-// Função utilitária: converte cor hex para HSL sem a função hsl()
-//
-// O sistema de tema Tailwind v4 usa CSS variables no formato "H S% L%"
-// (sem "hsl()" à volta) para permitir que as utilities como bg-primary
-// sejam definidas como hsl(var(--primary) / <alpha>).
-//
-// Exemplo: "#00A8E8" → "201 100% 45%"
-// ============================================================
-
-function hexToHSL(hex) {
-  // Remove o '#' se presente e converte para valores RGB [0, 1]
-  const clean = hex.replace('#', '');
-  const r = parseInt(clean.substring(0, 2), 16) / 255;
-  const g = parseInt(clean.substring(2, 4), 16) / 255;
-  const b = parseInt(clean.substring(4, 6), 16) / 255;
-
-  const max = Math.max(r, g, b);
-  const min = Math.min(r, g, b);
-  let h, s;
-  const l = (max + min) / 2;
-
-  if (max === min) {
-    // Cinzento — sem matiz
-    h = s = 0;
-  } else {
-    const d = max - min;
-    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-
-    switch (max) {
-      case r:
-        h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
-        break;
-      case g:
-        h = ((b - r) / d + 2) / 6;
-        break;
-      case b:
-        h = ((r - g) / d + 4) / 6;
-        break;
-    }
-  }
-
-  // Formato esperado pelo Tailwind v4: "201 100% 45%"
-  return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
-}
 
 // ============================================================
 // Função utilitária: aplica a cor do trainer como CSS variables

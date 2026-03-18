@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
+import { videoUrlRules } from '@/utils/validators';
 import {
   Dialog,
   DialogContent,
@@ -146,14 +147,7 @@ export default function ExerciseFormDialog({
               type="url"
               placeholder="https://youtube.com/..."
               className="bg-background border-input"
-              {...register('url', {
-                // Valida formato de URL apenas se tiver valor
-                pattern: {
-                  value: /^https?:\/\/.+/,
-                  message:
-                    'URL inválido — deve começar com http:// ou https://',
-                },
-              })}
+              {...register('url', videoUrlRules)}
             />
             {errors.url && (
               <span className="text-destructive text-xs">

@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
+import { emailRules, fullNameRules, phoneRules, heightRules } from "@/utils/validators";
 import {
   Dialog,
   DialogContent,
@@ -152,10 +153,7 @@ export default function ClientFormDialog({
               <Label htmlFor="full_name">Nome Completo *</Label>
               <Input
                 id="full_name"
-                {...register("full_name", {
-                  required: "Nome completo é obrigatório",
-                  minLength: { value: 2, message: "Mínimo de 2 caracteres" },
-                })}
+                {...register("full_name", fullNameRules)}
                 className="bg-background border-input text-foreground"
                 placeholder="Nome completo do cliente"
               />
@@ -171,10 +169,7 @@ export default function ClientFormDialog({
               <Label htmlFor="phone">Telemóvel *</Label>
               <Input
                 id="phone"
-                {...register("phone", {
-                  required: "Telemóvel é obrigatório",
-                  minLength: { value: 9, message: "Mínimo de 9 caracteres" },
-                })}
+                {...register("phone", phoneRules)}
                 className="bg-background border-input text-foreground"
                 placeholder="+351 9XX XXX XXX"
               />
@@ -191,10 +186,7 @@ export default function ClientFormDialog({
               <Input
                 id="email"
                 type="email"
-                {...register("email", {
-                  required: "Email é obrigatório",
-                  pattern: { value: /^\S+@\S+$/i, message: "Email inválido" },
-                })}
+                {...register("email", emailRules)}
                 className="bg-background border-input text-foreground"
                 placeholder="email@exemplo.com"
               />
@@ -249,11 +241,7 @@ export default function ClientFormDialog({
               <Input
                 id="height_cm"
                 type="number"
-                {...register("height_cm", {
-                  required: "Altura é obrigatória",
-                  min: { value: 60, message: "Mínimo de 60 cm" },
-                  max: { value: 260, message: "Máximo de 260 cm" },
-                })}
+                {...register("height_cm", heightRules)}
                 className="bg-background border-input text-foreground"
                 placeholder="175"
               />

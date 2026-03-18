@@ -14,6 +14,7 @@
 import { useState } from 'react';
 
 import { useForm } from 'react-hook-form';
+import { emailRules, passwordRules } from '@/utils/validators';
 import { toast } from 'react-toastify';
 import { Dumbbell, Eye, EyeOff, Loader2 } from 'lucide-react';
 
@@ -101,13 +102,7 @@ export default function LoginPage() {
                   placeholder="example@gmail.com"
                   autoComplete="email"
                   disabled={isLoading}
-                  {...register('email', {
-                    required: 'Email é obrigatório',
-                    pattern: {
-                      value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                      message: 'Email inválido',
-                    },
-                  })}
+                  {...register('email', emailRules)}
                 />
                 {/* Mostra o erro de validação do email, se houver */}
                 {errors.email && (
@@ -128,13 +123,7 @@ export default function LoginPage() {
                     autoComplete="current-password"
                     disabled={isLoading}
                     className="pr-10" // Espaço para o ícone de mostrar/ocultar
-                    {...register('password', {
-                      required: 'Password é obrigatório',
-                      minLength: {
-                        value: 6,
-                        message: 'Password deve ter pelo menos 6 caracteres',
-                      },
-                    })}
+                    {...register('password', passwordRules)}
                   />
                   {/* Ícone de mostrar/ocultar password */}
                   <button

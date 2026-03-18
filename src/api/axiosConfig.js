@@ -29,7 +29,7 @@ const API_KEY = import.meta.env.VITE_API_KEY;
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000, // Tempo limite de 10 segundos
+  timeout: 30000, // Tempo limite de 30 segundos
   headers: {
     'Content-Type': 'application/json',
     ...(API_KEY && { 'X-API-KEY': API_KEY }),

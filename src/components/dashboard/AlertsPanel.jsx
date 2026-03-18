@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { AlertCircle, Package, Calendar } from 'lucide-react';
+import { formatDateTime, diffInHours } from '@/utils/formatters';
 
 export default function AlertsPanel({ clientsAtRisk, upcomingSessions }) {
   const alerts = [];
@@ -31,7 +32,7 @@ export default function AlertsPanel({ clientsAtRisk, upcomingSessions }) {
   upcomingSessions
     .filter((session) => {
       const sessionDate = new Date(session.starts_at);
-      const timeHours = (sessionDate - today) / (1000 * 60 * 60); // Diferença em horas
+      const timeHours = diffInHours(today, sessionDate);
       return timeHours <= 24 && timeHours > 0; // Próximas 24 horas
     })
     .forEach((session) => {
@@ -39,7 +40,7 @@ export default function AlertsPanel({ clientsAtRisk, upcomingSessions }) {
         type: 'info',
         icon: Calendar,
         title: 'Sessão próxima',
-        description: `Sessão de ${session.client.full_name} agendada para ${new Date(session.starts_at).toLocaleString('pt-PT', { hour: '2-digit', minute: '2-digit' })}.`,
+        description: `Sessão de ${session.client.full_name} agendada para ${formatDateTime(session.starts_at)}.`,
         action: 'Ver detalhes',
       });
     });

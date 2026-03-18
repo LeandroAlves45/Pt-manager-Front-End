@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { matchesSearch } from '@/utils/validators';
 import { useExercises } from '@/hooks/useExercises';
 import {
   Dialog,
@@ -36,9 +37,7 @@ export default function ExercisePicker({ open, onOpenChange, onSelect }) {
 
   // Filtro local por texto
   // A API também suporta ?q= mas filtrar localmente evita chamadas extras
-  const filtered = exercises.filter((ex) =>
-    ex.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = exercises.filter((ex) => matchesSearch(search, ex.name));
 
   const handleSelect = (exercise) => {
     onSelect(exercise);

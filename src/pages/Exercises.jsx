@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { matchesSearch } from '@/utils/validators';
 import MuscleMultiSelect from '@/components/exercises/MuscleMultiSelect';
 import { useForm, Controller } from 'react-hook-form';
 import { toast } from 'react-toastify';
@@ -82,11 +83,7 @@ export default function Exercises() {
       result = result.filter((e) => !e.is_active);
     if (search.trim()) {
       const q = search.toLowerCase();
-      result = result.filter(
-        (e) =>
-          e.name.toLowerCase().includes(q) ||
-          e.muscles.toLowerCase().includes(q)
-      );
+      result = result.filter((e) => matchesSearch(q, e.name, e.muscles));
     }
     return result;
   }, [exercises, search, statusFilter]);

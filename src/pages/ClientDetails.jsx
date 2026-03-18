@@ -9,6 +9,7 @@ import {
   removeClientAssignment,
   getSupplements,
 } from '@/api/supplementApi';
+import { generateInvite } from '../api/inviteApi';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -16,17 +17,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  ArrowLeft,
-  Mail,
-  Phone,
-  Calendar,
-  Ruler,
-  Target,
-  Pill,
-  Plus,
-  X,
-} from 'lucide-react';
+import { ArrowLeft, Mail, Phone, Calendar, Ruler, Target, Pill, Plus, X, Link, Copy } from 'lucide-react';
 import {
   getInitials,
   calculateAge,
@@ -131,6 +122,34 @@ export default function ClientDetails() {
       toast.error('Erro ao remover suplemento.');
     }
   };
+
+  // Estado do link de convite
+  const [inviteLink, setInviteLink] = useState('');
+  const [generatingInvite, setGeneratingInvite] = useState(false);
+
+  // Gera um link de convite para o cliente
+  const handleGenerateInvite = async () => {
+    setGeneratingInvite(true);
+    try {
+      const data = await generateInvite(id);
+      setInviteLink(data.invite_link);
+      // Copia o link para a área de transferência
+      await navigator.clipboard.writeText(data.invite_link);
+      toast.success(`Link de convite copiado para a área de transferência! Válido por ${data.expires_in_days} dias.`);
+    } catch {
+      toast.error('Erro ao gerar link de convite.');
+    } finally {
+      setGeneratingInvite(false);
+    }
+  };
+
+  // Copia o link de convite para a área de transferência
+  const handleCopyInvite = async () => {
+    if (!inviteLink) return;
+    await navigator.clipboard.writeText(inviteLink);
+    toast.success('Link de convite copiado para a área de transferência!');
+  };
+
 
   // Suplementos do catálogo que ainda não foram atribuídos — evita duplicados no select
   const unassignedSupplements = catalogue.filter(
@@ -264,7 +283,67 @@ export default function ClientDetails() {
         </CardContent>
       </Card>
 
-      {/* Painel de suplementos atribuídos (SU-04) */}
+      {/* Link de convite para o cliente */}
+      <Card className="bg-card border-border">
+        <CardContent className="p-6 space-y-4">
+          <div className="flex items-center gap-2">
+            <Link className="h-4 w-4 text-muted-foreground" />
+            <h2 className="text-sm font-medium text-foreground">Acesso do Cliente</h2>
+          </div>
+
+          <p className="text-xs text-muted-foreground">
+            Gera um link de convite para o cliente definir a sua password e aceder à plataforma.
+            O link é válido por 7 dias e só pode ser usado uma vez.
+          </p>
+
+          {/* Se ainda não há link gerado, mostra o botão para gerar */}
+          {!inviteLink ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleGenerateInvite}
+              disabled={generatingInvite}
+            >
+              {generatingInvite ?  (
+                <>A gerar...</>
+              ) : (
+                <>
+                  <Link className="h-4 w-4 mr-2" />
+                  Gerar Link de Convite
+                </>
+              )}
+            </Button>
+          ) : (
+            <>
+            {/* Link gerado — mostra o link e botão para copiar */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 p-2 rounded-md bg-muted text-xs font-mono break-all">
+                <span className="flex-1 text-muted-foreground">{inviteLink}</span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="shrink-0 h-7 w-7"
+                  onClick={handleCopyInvite}
+                  title="Copiar link"
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleGenerateInvite}
+                disabled={generatingInvite}
+              >
+                Gerar Novo Link
+              </Button>
+            </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Painel de suplementos atribuídos */}
       <Card className="bg-card border-border">
         <CardContent className="p-6 space-y-4">
           <div className="flex items-center gap-2">

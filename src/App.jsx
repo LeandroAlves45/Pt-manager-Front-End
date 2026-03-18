@@ -17,9 +17,11 @@
 
 import { Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute';
+
 // Páginas públicas
 import LoginPage from './pages/LoginPage';
 import TrainerSignupPage from './pages/TrainerSignupPage';
+import ClientFirstLoginPage from './pages/ClientFirstLoginPage';
 
 // Layouts
 import TrainerLayout from './layouts/TrainerLayout';
@@ -66,6 +68,9 @@ export default function App() {
 
       {/* Raiz redireciona para login — nunca deve ficar em / */}
       <Route path="/" element={<Navigate to="/login" replace />} />
+
+      {/* Página de primeiro login do cliente via link de convite */}
+      <Route path="/invite/:token" element={<ClientFirstLoginPage />} />
 
       {/* ============================================================
                 ROTAS DO TRAINER 

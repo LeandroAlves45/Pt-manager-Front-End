@@ -51,6 +51,9 @@ export default function ProtectedRoute({ children, requiredRole }) {
 
   // Sem sessão activa → redireciona para login.
   // replace={true} evita que o /login fique no histórico de navegação
+  if (!isAuthenticated || !user) {
+    return <Navigate to="/login" replace />;
+  }
 
   if (requiredRole && user.role !== requiredRole) {
     // Superuser pode aceder a rotas de trainer, tem acesso total

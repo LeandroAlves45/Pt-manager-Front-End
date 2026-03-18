@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { matchesSearch } from '@/utils/validators';
 import { toast } from 'react-toastify';
 import { useSessions } from '@/hooks/useSessions';
 import {
@@ -65,7 +66,7 @@ export default function Sessions() {
       result = result.filter((s) => s.status === statusFilter);
     if (search.trim()) {
       const q = search.toLowerCase();
-      result = result.filter((s) => s.client?.name.toLowerCase().includes(q));
+      result = result.filter((s) => matchesSearch(q, s.client?.name));
     }
     return result;
   }, [sessions, search, statusFilter]);

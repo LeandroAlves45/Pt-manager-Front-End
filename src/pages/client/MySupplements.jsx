@@ -15,7 +15,6 @@ import { getMySupplements } from '@/api/supplementApi';
 import { Pill, Clock, Beaker } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { set } from 'react-hook-form';
 
 export default function MySupplements() {
   const [supplements, setSupplements] = useState([]);

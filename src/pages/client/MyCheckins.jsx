@@ -6,14 +6,15 @@
  */
 
 import { useEffect, useState, useCallback } from 'react';
-import { set, useForm } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
+import { formatDate, parseNullableFloat, parseNullableInt } from '@/utils/formatters';
 import { toast } from 'react-toastify';
-import { ClipboardList, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { ClipboardList, CheckCircle, Loader2 } from 'lucide-react';
 import { getMyCheckIns, respondToCheckIn } from '@/api/clientPortalApi';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
@@ -33,18 +34,13 @@ function getStatusBadge(status) {
   return { label: status, variant: 'outline' };
 }
 
-// Formata data ISO para "dd/mm/yyyy"
-function formatDate(dateStr) {
-  if (!dateStr) return '—';
-  return new Date(dateStr).toLocaleDateString('pt-PT');
-}
 
 export default function MyCheckIns() {
   const [checkIns, setCheckIns] = useState([]);
   const [loading, setLoading] = useState(true);
   // checkin seleccionado para responder
   const [responding, setResponding] = useState(null);
-  const [submititLoading, setSubmitLoading] = useState(false);
+  const [submitLoading, setSubmitLoading] = useState(false);
 
   const fetchCheckIns = useCallback(async () => {
     try {
@@ -77,22 +73,14 @@ export default function MyCheckIns() {
     setSubmitLoading(true);
     try {
       await respondToCheckIn(responding.id, {
-        weight_kg: formData.weight_kg ? parseFloat(formData.weight_kg) : null,
-        body_fat: formData.body_fat ? parseFloat(formData.body_fat) : null,
+        weight_kg: parseNullableFloat(formData.weight_kg),
+        body_fat: parseNullableFloat(formData.body_fat),
         client_notes: formData.client_notes || null,
         questionnaire: {
-          energy_level: formData.energy_level
-            ? parseInt(formData.energy_level)
-            : null,
-          training_perfomance: formData.training_perfomance
-            ? parseInt(formData.training_perfomance)
-            : null,
-          stress_level: formData.stress_level
-            ? parseInt(formData.stress_level)
-            : null,
-          plan_adherence_pct: formData.plan_adherence_pct
-            ? parseInt(formData.plan_adherence_pct)
-            : null,
+          energy_level: parseNullableInt(formData.energy_level),
+          training_perfomance: parseNullableInt(formData.training_perfomance),
+          stress_level: parseNullableInt(formData.stress_level),
+          plan_adherence_pct: parseNullableInt(formData.plan_adherence_pct),
           injuries: formData.injuries || null,
         },
       });
@@ -146,7 +134,7 @@ export default function MyCheckIns() {
                     </p>
                   </div>
                 </div>
-                <Button size="sm" onClick={() => openResponseDialog(checkin)}>
+                <Button size="sm" onClick={() => openRespondDialog(checkin)}>
                   Responder
                 </Button>
               </CardContent>
@@ -218,7 +206,7 @@ export default function MyCheckIns() {
       )}
 
       {/* Estado vazio */}
-      {checkins.length === 0 && (
+      {checkIns.length === 0 && (
         <div className="rounded-lg border border-border bg-card p-8 flex flex-col items-center gap-3 text-center">
           <CheckCircle className="h-10 w-10 text-muted-foreground" />
           <p className="font-medium text-foreground">Tudo em dia!</p>

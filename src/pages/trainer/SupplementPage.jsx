@@ -11,6 +11,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
+import { matchesSearch } from '@/utils/validators';
 import { toast } from 'react-toastify';
 import {
   getSupplements,
@@ -47,7 +48,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownSeparator,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import {
   AlertDialog,
@@ -122,13 +123,16 @@ export default function SupplementsPage() {
       if (tab === 'active' && isArchived) return false;
       if (tab === 'archived' && !isArchived) return false;
       // Filtra por pesquisa
-      if (search && !supp.name.toLowerCase().includes(search.toLowerCase()))
+      if (search && !matchesSearch(search, supp.name))
         return false;
       return true;
     });
   }, [supplements, tab, search]);
 
-  // Abre dialog de criação (limpa estado de edição)
+  // Abre dialog de criação (sem suplemento pré-carregado)
+  const handleOpenCreate = () => handleOpenEdit(null);
+
+  // Abre dialog de edição com suplemento existente
   const handleOpenEdit = (supplement) => {
     setEditingSupp(supplement);
     // Pré-preenche o formulário se estivermos a editar
@@ -167,7 +171,7 @@ export default function SupplementsPage() {
   };
 
   // Arquiva ou reativa suplemento
-  const handleArcgive = async (supplement) => {
+  const handleArchive = async (supplement) => {
     try {
       await archiveSupplement(supplement.id);
       toast.success(`${supplement.name} arquivado.`);

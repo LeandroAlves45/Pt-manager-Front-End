@@ -12,6 +12,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
+import { emailRules, trainerPasswordRules, fullNameRules } from '@/utils/validators';
 import { toast } from 'react-toastify';
 import { Dumbbell, Eye, EyeOff, Loader2 } from 'lucide-react';
 
@@ -100,13 +101,7 @@ export default function TrainerSignupPage() {
                   id="full_name"
                   placeholder="Ex: Leandro Alves"
                   disabled={isLoading}
-                  {...register('full_name', {
-                    required: 'O nome é obrigatório',
-                    minLength: {
-                      value: 2,
-                      message: 'Mínimo 2 caracteres',
-                    },
-                  })}
+                  {...register('full_name', fullNameRules)}
                 />
                 {errors.full_name && (
                   <p className="text-sm text-destructive">
@@ -123,13 +118,7 @@ export default function TrainerSignupPage() {
                   type="email"
                   placeholder="leandro@example.com"
                   disabled={isLoading}
-                  {...register('email', {
-                    required: 'O email é obrigatório',
-                    pattern: {
-                      value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                      message: 'Formato de email inválido',
-                    },
-                  })}
+                  {...register('email', emailRules)}
                 />
                 {errors.email && (
                   <p className="text-sm text-destructive">
@@ -148,13 +137,7 @@ export default function TrainerSignupPage() {
                     placeholder="Mínimo 8 caracteres"
                     autoComplete="new-password"
                     disabled={isLoading}
-                    {...register('password', {
-                      required: 'A password é obrigatória',
-                      minLength: {
-                        value: 8,
-                        message: 'A password deve ter no mínimo 8 caracteres',
-                      },
-                    })}
+                    {...register('password', trainerPasswordRules)}
                   />
                   <button
                     type="button"
