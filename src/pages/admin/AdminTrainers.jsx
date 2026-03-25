@@ -2,7 +2,7 @@
  * AdminTrainers.jsx — lista de todos os trainers com acções de administração.
  *
  * Acções disponíveis por trainer:
- *   - Suspender / Reactivar (bloqueia/desbloqueia acesso)
+ *   - Suspender / Reativar (bloqueia/desbloqueia acesso)
  *   - Conceder / Revogar isenção de billing (free-forever)
  */
 

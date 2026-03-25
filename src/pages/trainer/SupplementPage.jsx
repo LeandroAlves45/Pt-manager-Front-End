@@ -63,7 +63,6 @@ import {
 import {
   MoreHorizontal,
   Plus,
-  Search,
   Package,
   Archive,
   Trash2,
@@ -304,7 +303,7 @@ export default function SupplementsPage() {
                             onClick={() => handleUnarchive(supp)}
                           >
                             <Package className="mr-2 h-4 w-4" />
-                            Reactivar
+                            Reativar
                           </DropdownMenuItem>
                         ) : (
                           <DropdownMenuItem onClick={() => handleArchive(supp)}>

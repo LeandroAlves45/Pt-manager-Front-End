@@ -217,6 +217,7 @@ export function AuthProvider({ children }) {
     login,
     logout,
     fetchTrainerSettings, // exposto para o TrainerProfile actualizar o branding em runtime
+    applyBrandColor, // exposto para permitir actualizar a cor sem recarregar settings
 
     // Booleans de conveniência — evitam comparações de string nos componentes
     isAuthenticated: !!user,

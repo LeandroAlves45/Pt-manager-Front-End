@@ -195,7 +195,7 @@ export default function ClientFirstLoginPage() {
             <CardTitle>Bem-vindo/a, {clientName}!</CardTitle>
             <CardDescription>
               O teu Personal Trainer convidou-te para a plataforma. Define a tua
-              password para activares a tua conta.
+              password para ativares a tua conta.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
