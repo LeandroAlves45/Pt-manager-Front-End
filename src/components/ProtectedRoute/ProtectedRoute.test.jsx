@@ -17,7 +17,7 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 
 // Mock do AuthContext — controlamos o estado sem fazer pedidos à API
 const mockUseAuth = vi.fn();
-vi.mock('@/context/AuthContext', () => ({
+vi.mock('@/context/useAuth', () => ({
   useAuth: () => mockUseAuth(),
 }));
 

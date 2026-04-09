@@ -26,6 +26,16 @@ export const getClients = async (params = {}) => {
 };
 
 /**
+ * Busca um único cliente pelo ID
+ * @param {string} clientId - ID do cliente
+ * @returns {Promise<Object>} Dados do cliente
+ */
+export const getClient = async (clientId) => {
+  const response = await api.get(`/api/v1/clients/${clientId}`);
+  return response.data;
+};
+
+/**
  * * Cria um novo cliente
  * @param {Object} clientData - Dados do cliente
  * @param {string} clientData.full_name - Nome completo (obrigatório)
@@ -48,7 +58,7 @@ export const createClient = async (clientData) => {
 /**
  * * Atualiza um cliente existente
  * @param {string} clientId - ID do cliente a ser atualizado
- * @param {Object} clientData - Campos a actualizar (apenas os que mudaram)
+ * @param {Object} clientData - Campos a atualizar (apenas os que mudaram)
  * @returns {Promise<Object>} Cliente atualizado
  *
  */

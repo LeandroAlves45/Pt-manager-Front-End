@@ -42,7 +42,9 @@ import {
  */
 
 export default function PlanDaysList({ planId, days = [], onRefresh }) {
-  // Estado para controlar qual dia está com o ExercisePicker aberto
+  // Controla quais dias estão com o accordion aberto (preserva estado após refresh)
+  const [openDays, setOpenDays] = useState([]);
+
   const [newdayName, setNewDayName] = useState('');
   const [addingDay, setAddingDay] = useState(false);
 
@@ -188,7 +190,12 @@ export default function PlanDaysList({ planId, days = [], onRefresh }) {
           Nenhum dia adicionado ainda. Cria o primeiro dia abaixo.
         </p>
       ) : (
-        <Accordion type="multiple" className="flex flex-col gap-2">
+        <Accordion
+          type="multiple"
+          value={openDays}
+          onValueChange={setOpenDays}
+          className="flex flex-col gap-2"
+        >
           {days.map((day) => (
             <AccordionItem
               key={day.id}
@@ -266,7 +273,9 @@ export default function PlanDaysList({ planId, days = [], onRefresh }) {
                                 {/* Notas */}
                                 <span className="block text-muted-foreground/70 italic mt-0.5">
                                   {de.notes ? (
-                                    `📝 ${de.notes}`
+                                    <span className="whitespace-pre-wrap">
+                                      📝 {de.notes}
+                                    </span>
                                   ) : (
                                     <span className="opacity-60">
                                       📝 sem notas
@@ -341,7 +350,7 @@ export default function PlanDaysList({ planId, days = [], onRefresh }) {
                                         handleCancelEdit();
                                     }}
                                     className="h-6 w-20 text-xs px-1 bg-background"
-                                    placeholder="60-90s"
+                                    placeholder="60-90"
                                   />
                                 </div>
 
@@ -360,9 +369,8 @@ export default function PlanDaysList({ planId, days = [], onRefresh }) {
                                       }))
                                     }
                                     onKeyDown={(e) => {
-                                      // Shift+Enter faz nova linha, Enter sozinho confirma
-                                      if (e.key === 'Enter' && !e.shiftKey) {
-                                        e.preventDefault(); // Evita quebra de linha
+                                      if (e.key === 'Enter') {
+                                        e.preventDefault();
                                         handleConfirmEdit(de);
                                       }
                                       if (e.key === 'Escape')

@@ -1,0 +1,222 @@
+# .github/workflows/ci.yml — PT Manager FRONTEND
+# Repositório: pt-manager-frontend
+#
+# QUANDO CORRE:
+#   - push para main ou develop
+#   - pull request para main
+#
+# JOBS:
+#   1. lint-build  — ESLint + build de produção com Vite
+#   2. tests       — Vitest (se existirem testes)
+#   3. issue       — cria GitHub Issue se falhar em main
+#   4. deploy      — deploy automático na Vercel se tudo passar em main
+#
+# SECRETS NECESSÁRIOS (Settings → Secrets → Actions):
+#   VERCEL_TOKEN      — vercel.com → Account Settings → Tokens
+#   VERCEL_ORG_ID     — Vercel Dashboard → Settings → General → Team ID
+#   VERCEL_PROJECT_ID — Vercel Dashboard → o teu projeto → Settings → General
+
+name: Frontend CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ──────────────────────────────────────────────────────────
+  # JOB 1: ESLint + build de produção
+  # Garante que o código não tem erros e compila sem problemas
+  # ──────────────────────────────────────────────────────────
+  lint-build:
+    name: ESLint + Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: ESLint
+        run: npm run lint
+        # Remove --max-warnings 0 se quiseres permitir warnings
+
+      - name: Build de produção
+        # VITE_API_BASE_URL aponta para o backend em produção.
+        # Em CI usamos um placeholder — o build não faz pedidos reais.
+        run: npm run build
+        env:
+          VITE_API_BASE_URL: https://pt-manager-api.onrender.com
+
+      - name: Guardar artefacto do build
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 3
+
+  # ──────────────────────────────────────────────────────────
+  # JOB 2: Vitest
+  # Corre os testes unitários e de integração com Vitest + RTL
+  # ──────────────────────────────────────────────────────────
+  tests:
+    name: Vitest
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Executar testes
+        run: npm test -- --run
+        # --run executa uma vez (sem watch mode) — adequado para CI
+        env:
+          VITE_API_BASE_URL: http://localhost:8000
+
+  # ──────────────────────────────────────────────────────────
+  # JOB 3: Issue automático em falha em main
+  # ──────────────────────────────────────────────────────────
+  create-issue-on-failure:
+    name: Issue em falha
+    runs-on: ubuntu-latest
+    needs: [lint-build, tests]
+    if: |
+      failure() &&
+      github.ref == 'refs/heads/main' &&
+      github.event_name == 'push'
+
+    steps:
+      - name: Determinar job falhado
+        id: info
+        run: |
+          if [ "${{ needs.lint-build.result }}" == "failure" ]; then
+            echo "job=ESLint / Build" >> $GITHUB_OUTPUT
+          else
+            echo "job=Vitest" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Criar Issue
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const failedJob = "${{ steps.info.outputs.job }}";
+            const shortSha = context.sha.substring(0, 7);
+            const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const commitUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/commit/${context.sha}`;
+
+            const title = `🔴 [Frontend] ${failedJob} falhou em main — ${shortSha}`;
+
+            const body = [
+              "## Falha de CI no Frontend",
+              "",
+              "| | |",
+              "|---|---|",
+              `| **Job** | ${failedJob} |`,
+              `| **Commit** | [\`${shortSha}\`](${commitUrl}) |`,
+              `| **Autor** | @${context.actor} |`,
+              `| **Run** | [Ver detalhes](${runUrl}) |`,
+              "",
+              "## Reproduzir localmente",
+              "```bash",
+              "# ESLint",
+              "npm run lint",
+              "",
+              "# Build",
+              "npm run build",
+              "",
+              "# Testes",
+              "npm test -- --run",
+              "```",
+              "",
+              "---",
+              "_Issue criado automaticamente pelo GitHub Actions_",
+            ].join("\n");
+
+            const existing = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: "open",
+              labels: "ci-failure",
+            });
+
+            if (!existing.data.some(i => i.title.includes(shortSha))) {
+              const issue = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+                labels: ["bug", "ci-failure"],
+              });
+              console.log(`Issue criado: ${issue.data.html_url}`);
+            }
+
+  # ──────────────────────────────────────────────────────────
+  # JOB 4: Deploy na Vercel (só se lint + testes passaram em main)
+  #
+  # Usa a Vercel CLI em vez do GitHub Integration para ter
+  # controlo total sobre quando o deploy acontece.
+  # ──────────────────────────────────────────────────────────
+  deploy:
+    name: Deploy → Vercel
+    runs-on: ubuntu-latest
+    needs: [lint-build, tests]
+    if: |
+      success() &&
+      github.ref == 'refs/heads/main' &&
+      github.event_name == 'push'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Instalar Vercel CLI
+        run: npm install -g vercel@latest
+
+      - name: Verificar secrets configurados
+        run: |
+          if [ -z "${{ secrets.VERCEL_TOKEN }}" ]; then
+            echo "⚠️  VERCEL_TOKEN não configurado"
+            echo "   Vai a: Settings → Secrets → Actions → New secret"
+            echo "   Obtém o token em: vercel.com → Account Settings → Tokens"
+            exit 1
+          fi
+
+      - name: Deploy para produção
+        run: |
+          vercel deploy \
+            --prod \
+            --token="${{ secrets.VERCEL_TOKEN }}" \
+            --scope="${{ secrets.VERCEL_ORG_ID }}"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}

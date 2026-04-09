@@ -1,7 +1,7 @@
 /**
  * ClientDashboard.jsx — dashboard do portal do cliente.
  *
- * Mostra: check-ins pendentes, nome do plano activo, e acesso rápido
+ * Mostra: check-ins pendentes, nome do plano ativo, e acesso rápido
  * às secções principais. É a primeira página após o login do cliente.
  */
 
@@ -12,12 +12,12 @@ import {
   Dumbbell,
   UtensilsCrossed,
   ChevronRight,
+  UserRound,
 } from 'lucide-react';
 import { getMyCheckIns, getMyTrainingPlan } from '@/api/clientPortalApi';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/context/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { set } from 'react-hook-form';
 
 export default function ClientDashboard() {
   const { user } = useAuth();
@@ -35,7 +35,7 @@ export default function ClientDashboard() {
         // Conta apenas os check-ins pendentes
         setPendingCount(checkins.filter((c) => c.status === 'pending').length);
         setPlanName(planData?.plan?.name ?? null);
-      } catch (error) {
+      } catch {
         // falha silenciosa — o dashboard é apenas um resumo
       } finally {
         setLoading(false);
@@ -65,6 +65,13 @@ export default function ClientDashboard() {
       href: '/cliente/checkins',
       icon: ClipboardList,
       badge: pendingCount > 0 ? pendingCount : null,
+    },
+    {
+      label: 'Perfil',
+      description: 'Consultar os teus dados pessoais',
+      href: '/cliente/perfil',
+      icon: UserRound,
+      badge: null,
     },
   ];
 
@@ -102,7 +109,7 @@ export default function ClientDashboard() {
       )}
 
       {/* Cards de acesso rápido*/}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {quickLinks.map((item) => (
           <Link key={item.href} to={item.href}>
             <Card className="border-border bg-card hover:bg-muted/30 transition-colors cursor-pointer h-full">

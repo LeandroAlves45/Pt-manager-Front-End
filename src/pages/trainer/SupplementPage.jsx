@@ -1,12 +1,15 @@
 /**
- * SupplementsPage.jsx — gestão do catálogo de suplementos (trainer).
+ * SupplementsPage.jsx — gestão do catálogo de suplementos (Personal Trainer).
+ *
+ * Regras de negócio aplicadas:
+ *   - Suplementos com created_by_user_id = null são GLOBAIS.
+ *     O Personal Trainer pode visualizá-los mas NÃO pode editar, arquivar ou apagar.
+ *   - Suplementos com created_by_user_id = <uuid> são PRIVADOS do Personal Trainer.
  *
  * Funcionalidades:
- *   - Lista suplementos activos/arquivados com pesquisa por nome
- *   - Criar novo suplemento (dialog com formulário react-hook-form)
- *   - Editar suplemento existente (mesmo dialog, pré-preenchido)
- *   - Arquivar / Reactivar suplemento
- *   - Apagar permanentemente (com confirmação)
+ *   - Lista suplementos ativos/arquivados com pesquisa por nome
+ *   - Badge "Global" para suplementos da plataforma
+ *   - Criar, editar, arquivar, reativar e apagar os suplementos PRIVADOS
  */
 
 import { useState, useEffect, useMemo } from 'react';
@@ -96,6 +99,11 @@ export default function SupplementsPage() {
     },
   });
 
+  // Um suplemento é global quando created_by_user_id é null ou undefined
+  const isGlobal = (supplement) =>
+    supplement.created_by_user_id === null ||
+    supplement.created_by_user_id === undefined;
+
   // Carrega suplementos
   const loadSupplements = async () => {
     try {
@@ -122,17 +130,34 @@ export default function SupplementsPage() {
       if (tab === 'active' && isArchived) return false;
       if (tab === 'archived' && !isArchived) return false;
       // Filtra por pesquisa
-      if (search && !matchesSearch(search, supp.name))
+      if (
+        search &&
+        !matchesSearch(search, supp.name, supp.description, supp.timing)
+      )
         return false;
       return true;
     });
   }, [supplements, tab, search]);
 
   // Abre dialog de criação (sem suplemento pré-carregado)
-  const handleOpenCreate = () => handleOpenEdit(null);
+  const handleOpenCreate = () => {
+    setEditingSupp(null);
+    reset({
+      name: '',
+      description: '',
+      serving_size: '',
+      timing: '',
+      trainer_notes: '',
+    });
+    setFormOpen(true);
+  };
 
   // Abre dialog de edição com suplemento existente
   const handleOpenEdit = (supplement) => {
+    if (isGlobal(supplement)) {
+      toast.info('Suplementos globais não podem ser editados nesta página.');
+      return;
+    }
     setEditingSupp(supplement);
     // Pré-preenche o formulário se estivermos a editar
     reset({
@@ -205,13 +230,13 @@ export default function SupplementsPage() {
 
   return (
     <div className="p-6 space-y-6">
-      {/* Cabeçalho da página */}
+      {/* Cabeçalho */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Suplementos</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Gere o catálogo de suplementos e atribui-os aos teus clientes na
-            página de cada cliente.
+            Catálogo de suplementos. Atribui suplementos a clientes na página de
+            cada cliente.
           </p>
         </div>
         <Button onClick={handleOpenCreate}>
@@ -220,29 +245,28 @@ export default function SupplementsPage() {
         </Button>
       </div>
 
-      {/* Tabs e Pesquisa */}
+      {/* Pesquisa + Tabs */}
       <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
+        <div className="relative flex-1 max-w-sm">
           <Input
             placeholder="Pesquisar por nome..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
           />
         </div>
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList>
-            <TabsTrigger value="active">Activos</TabsTrigger>
+            <TabsTrigger value="active">Ativos</TabsTrigger>
             <TabsTrigger value="archived">Arquivados</TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
 
-      {/* Tabela de suplementos */}
+      {/* Tabela */}
       {loading ? (
         <p className="text-muted-foreground text-sm">A carregar...</p>
       ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground">
+        <div className="flex flex-col items-center justify-center py-16 text-muted-foreground text-center">
           <Package className="h-10 w-10 mb-3 opacity-30" />
           <p className="font-medium">Nenhum suplemento encontrado.</p>
           <p className="text-sm">
@@ -266,71 +290,75 @@ export default function SupplementsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((supp) => (
-                <TableRow key={supp.id}>
-                  <TableCell>
-                    <div className="font-medium">{supp.name}</div>
-                    {supp.archived_at && (
-                      <Badge variant="secondary" className="mt-1 text-xs">
-                        Arquivado
-                      </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell text-muted-foreground">
-                    {supp.serving_size || '—'}
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell text-muted-foreground">
-                    {supp.timing || '—'}
-                  </TableCell>
-                  <TableCell className="hidden lg:table-cell text-muted-foreground max-w-xs truncate">
-                    {supp.description || '—'}
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleOpenEdit(supp)}>
-                          <Edit className="mr-2 h-4 w-4" />
-                          Editar
-                        </DropdownMenuItem>
-
-                        {supp.archived_at ? (
-                          <DropdownMenuItem
-                            onClick={() => handleUnarchive(supp)}
-                          >
-                            <Package className="mr-2 h-4 w-4" />
-                            Reativar
-                          </DropdownMenuItem>
-                        ) : (
-                          <DropdownMenuItem onClick={() => handleArchive(supp)}>
-                            <Archive className="mr-2 h-4 w-4" />
-                            Arquivar
-                          </DropdownMenuItem>
-                        )}
-
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          className="text-destructive"
-                          onClick={() => setDeleteTarget(supp)}
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Apagar
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {filtered.map((supp) => {
+                const global = isGlobal(supp);
+                return (
+                  <TableRow key={supp.id}>
+                    <TableCell>
+                      <div className="font-medium">{supp.name}</div>
+                      {supp.archived_at && (
+                        <Badge variant="secondary" className="mt-1 text-xs">
+                          Arquivado
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell text-muted-foreground">
+                      {supp.serving_size || '—'}
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell text-muted-foreground">
+                      {supp.timing || '—'}
+                    </TableCell>
+                    <TableCell className="hidden lg:table-cell text-muted-foreground max-w-xs truncate">
+                      {supp.description || '—'}
+                    </TableCell>
+                    <TableCell>
+                      {/* Suplementos globais não têm menu de acções */}
+                      {!global && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => handleOpenEdit(supp)}
+                            >
+                              <Edit className="mr-2 h-4 w-4" /> Editar
+                            </DropdownMenuItem>
+                            {supp.archived_at ? (
+                              <DropdownMenuItem
+                                onClick={() => handleUnarchive(supp)}
+                              >
+                                <Package className="mr-2 h-4 w-4" /> Reativar
+                              </DropdownMenuItem>
+                            ) : (
+                              <DropdownMenuItem
+                                onClick={() => handleArchive(supp)}
+                              >
+                                <Archive className="mr-2 h-4 w-4" /> Arquivar
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={() => setDeleteTarget(supp)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" /> Apagar
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </div>
       )}
 
-      {/* Dialog: criar / editar suplemento */}
+      {/* Dialog: criar / editar */}
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
@@ -339,20 +367,17 @@ export default function SupplementsPage() {
             </DialogTitle>
             <DialogDescription>
               {editingSupp
-                ? 'Altera os dados do suplemento. Campos em branco mantêm o valor actual.'
-                : 'Preenche os dados do suplemento. Apenas o nome é obrigatório.'}
+                ? 'Altera os dados do suplemento.'
+                : 'Apenas o nome é obrigatório.'}
             </DialogDescription>
           </DialogHeader>
-
-          {/* O formulário usa react-hook-form — nunca usar tag <form> com shadcn */}
           <div className="space-y-4 pt-2">
-            {/* Nome */}
             <div className="space-y-1">
-              <Label htmlFor="name">
+              <Label htmlFor="s-name">
                 Nome <span className="text-destructive">*</span>
               </Label>
               <Input
-                id="name"
+                id="s-name"
                 placeholder="Ex: Creatina Monohidratada"
                 {...register('name', { required: 'Nome obrigatório' })}
               />
@@ -362,55 +387,47 @@ export default function SupplementsPage() {
                 </p>
               )}
             </div>
-
-            {/* Descrição */}
             <div className="space-y-1">
-              <Label htmlFor="description">Descrição</Label>
+              <Label htmlFor="s-desc">Descrição</Label>
               <Textarea
-                id="description"
-                placeholder="Ex: Aumenta a força e a massa muscular..."
+                id="s-desc"
                 rows={2}
+                placeholder="Ex: Aumenta a força..."
                 {...register('description')}
               />
             </div>
-
-            {/* Dose e Timing — lado a lado em ecrãs maiores */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
-                <Label htmlFor="serving_size">Dosagem</Label>
+                <Label htmlFor="s-dose">Dosagem</Label>
                 <Input
-                  id="serving_size"
+                  id="s-dose"
                   placeholder="Ex: 5g"
                   {...register('serving_size')}
                 />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="timing">Timing</Label>
+                <Label htmlFor="s-timing">Timing</Label>
                 <Input
-                  id="timing"
+                  id="s-timing"
                   placeholder="Ex: Pós-treino"
                   {...register('timing')}
                 />
               </div>
             </div>
-
-            {/* Notas internas (não visíveis ao cliente) */}
             <div className="space-y-1">
-              <Label htmlFor="trainer_notes">
+              <Label htmlFor="s-notes">
                 Notas internas{' '}
                 <span className="text-muted-foreground text-xs">
                   (não visíveis ao cliente)
                 </span>
               </Label>
               <Textarea
-                id="trainer_notes"
-                placeholder="Notas de uso, contra-indicações, marcas preferidas..."
+                id="s-notes"
                 rows={2}
+                placeholder="Notas, marcas preferidas..."
                 {...register('trainer_notes')}
               />
             </div>
-
-            {/* Botões de acção */}
             <div className="flex justify-end gap-2 pt-2">
               <Button
                 variant="outline"
@@ -431,7 +448,7 @@ export default function SupplementsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* AlertDialog: confirmar apagar */}
+      {/* AlertDialog: apagar */}
       <AlertDialog
         open={!!deleteTarget}
         onOpenChange={() => setDeleteTarget(null)}
@@ -441,8 +458,7 @@ export default function SupplementsPage() {
             <AlertDialogTitle>Apagar suplemento?</AlertDialogTitle>
             <AlertDialogDescription>
               Vais apagar permanentemente <strong>{deleteTarget?.name}</strong>.
-              Esta acção não pode ser revertida. Se queres manter o histórico,
-              arquiva em vez de apagar.
+              Para manter histórico, arquiva em vez de apagar.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

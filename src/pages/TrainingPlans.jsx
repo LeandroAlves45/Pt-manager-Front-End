@@ -1,4 +1,14 @@
+/**
+ * TrainingPlans.jsx — Lista de planos de treino do Personal Trainer
+ *
+ * Rota: /trainer/planos
+ *
+ * Esta página é apenas a lista — pesquisa, filtros, criar, editar
+ * metadados e eliminar planos.
+ */
+
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { matchesSearch } from '@/utils/validators';
 import { toast } from 'react-toastify';
 import { useTrainingPlans } from '@/hooks/useTrainingPlans';
@@ -8,42 +18,19 @@ import {
   updateTrainingPlan,
   deleteTrainingPlan,
   setClientActivePlan,
-  getPlanDays,
-  getDayExercises,
 } from '@/api/trainingPlan';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Search, Copy, Users, ClipboardList, Zap } from 'lucide-react';
+import { Plus, Search, Users, Copy } from 'lucide-react';
 import PlanList from '@/components/training-plans/PlanList';
 import PlanFormDialog from '@/components/training-plans/PlanFormDialog';
-import PlanDaysList from '@/components/training-plans/PlanDaysList';
 import ActivatePlanDialog from '@/components/training-plans/ActivatePlanDialog';
 
-/**
- * Página de Planos de Treino
- *
- * Responsabilidades desta página (componente "orquestrador"):
- * - Buscar dados (planos e clientes)
- * - Gerir estado de UI (modais abertos, plano selecionado, filtros)
- * - Executar operações CRUD e chamar a API
- * - Passar dados e callbacks para componentes filhos
- *
- * Modais/Sheets:
- * - PlanFormDialog: criar/editar plano
- * - Sheet lateral: detalhe do plano com PlanDaysList
- * - ActivatePlanDialog: ativar plano para cliente
- */
-
 export default function TrainingPlans() {
+  const navigate = useNavigate();
+
   //Dados e operações de planos e clientes
   const { plans, loading, error, refetch } = useTrainingPlans();
   const { clients } = useClients();
@@ -55,12 +42,6 @@ export default function TrainingPlans() {
   //Dialog para criação/edição de plano
   const [formOpen, setFormOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(null); //plano selecionado para editar ou ver detalhes
-
-  //Sheet lateral para detalhes do plano
-  const [detailOpen, setDetailOpen] = useState(false);
-  const [detailPlan, setDetailPlan] = useState(null); //plano selecionado para ver detalhes
-  const [detailDays, setDetailDays] = useState([]); //dias do plano selecionado
-  const [loadingDays, setLoadingDays] = useState(false); //estado de loading para os dias do plano
 
   //Dialog para ativar plano para cliente
   const [activateOpen, setActivateOpen] = useState(false);
@@ -98,56 +79,8 @@ export default function TrainingPlans() {
     setFormOpen(true);
   };
 
-  const handleView = async (plan) => {
-    setDetailPlan(plan);
-    setDetailOpen(true);
-    setLoadingDays(true);
-    try {
-      //Buscar os dias do plano para mostrar no detalhe
-      const days = await getPlanDays(plan.id);
-
-      //busca exercicios de cada dia em paralelo
-      const daysWithExercises = await Promise.all(
-        days.map(async (day) => {
-          try {
-            const exercises = await getDayExercises(day.id);
-            return { ...day, exercises };
-          } catch {
-            toast.error('Erro ao carregar exercícios do dia');
-            return { ...day, exercises: [] }; //retorna o dia mesmo se falhar os exercícios
-          }
-        })
-      );
-      setDetailDays(daysWithExercises);
-    } catch (error) {
-      toast.error('Erro ao carregar dias do plano');
-    } finally {
-      setLoadingDays(false);
-    }
-  };
-
-  //Refetch dos planos após criar/editar/excluir para atualizar a lista
-  const handleRefreshDays = async () => {
-    if (!detailPlan) return;
-    try {
-      const days = await getPlanDays(detailPlan.id);
-      //Para cada dia, busca os exercícios e adiciona na propriedade "exercises" do dia
-      const daysWithExercises = await Promise.all(
-        days.map(async (day) => {
-          try {
-            const exercises = await getDayExercises(day.id);
-            //retorna o dia com exercicios
-            return { ...day, exercises };
-          } catch {
-            toast.error('Erro ao carregar exercícios do dia');
-            return { ...day, exercises: [] }; //retorna o dia mesmo se falhar os exercícios
-          }
-        })
-      );
-      setDetailDays(daysWithExercises);
-    } catch {
-      toast.error('Erro ao atualizar dias do plano');
-    }
+  const handleView = (plan) => {
+    navigate(`/trainer/planos/${plan.id}`);
   };
 
   //Guardar (criar ou editar)
@@ -272,7 +205,7 @@ export default function TrainingPlans() {
         </Tabs>
       </div>
 
-      {/* Tabela*/}
+      {/* lista de planos */}
       {loading ? (
         //Skeleton
         <div className="space-y-3">
@@ -301,68 +234,6 @@ export default function TrainingPlans() {
         clients={clients}
         onSave={handleSave}
       />
-
-      {/* Sheet lateral para detalhes do plano */}
-      <Sheet open={detailOpen} onOpenChange={setDetailOpen}>
-        <SheetContent
-          side="right"
-          className="w-full sm:max-w-2xl bg-card border-border text-foreground overflow-y-auto"
-        >
-          <SheetHeader className="mb-6">
-            <SheetTitle className="flex items-center gap-2">
-              <ClipboardList className="h-5 w-5 text-primary" />
-              {detailPlan?.name}
-            </SheetTitle>
-            <SheetDescription className="text-muted-foreground">
-              Gere os dias e exercícios deste plano.
-            </SheetDescription>
-            {/* Badge de status e botão de ativar plano para cliente (só se for template) */}
-            <div className="flex items-center gap-3 mt-2">
-              <Badge
-                variant="outline"
-                className="border-border text-muted-foreground"
-              >
-                {detailPlan?.status === 'published'
-                  ? 'Publicado'
-                  : detailPlan?.status === 'draft'
-                    ? 'Rascunho'
-                    : 'Arquivado'}
-              </Badge>
-              {/* Botão ativar */}
-              {detailPlan?.status === 'published' && (
-                <Button
-                  size="sm"
-                  onClick={() => handleOpenActivate(detailPlan)}
-                  className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2 ml-auto"
-                >
-                  <Zap className="h-3.5 w-3.5" />
-                  Ativar para cliente
-                </Button>
-              )}
-            </div>
-          </SheetHeader>
-
-          {/* Lista de dias do plano */}
-          {loadingDays ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className="h-12 rounded-lg bg-muted animate-pulse"
-                />
-              ))}
-            </div>
-          ) : (
-            detailPlan && (
-              <PlanDaysList
-                planId={detailPlan.id}
-                days={detailDays}
-                onRefresh={handleRefreshDays}
-              />
-            )
-          )}
-        </SheetContent>
-      </Sheet>
 
       {/* Dialog para ativar plano para cliente */}
       <ActivatePlanDialog

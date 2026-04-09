@@ -36,11 +36,12 @@ export default function AlertsPanel({ clientsAtRisk, upcomingSessions }) {
       return timeHours <= 24 && timeHours > 0; // Próximas 24 horas
     })
     .forEach((session) => {
+      const clientName = session.client?.full_name ?? 'cliente';
       alerts.push({
         type: 'info',
         icon: Calendar,
         title: 'Sessão próxima',
-        description: `Sessão de ${session.client.full_name} agendada para ${formatDateTime(session.starts_at)}.`,
+        description: `Sessão de ${clientName} agendada para ${formatDateTime(session.starts_at)}.`,
         action: 'Ver detalhes',
       });
     });

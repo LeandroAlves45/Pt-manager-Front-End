@@ -4,7 +4,7 @@
  * Chama AuthContext.login() que trata de:
  *   - Chamar a API
  *   - Guardar o token
- *   - Carregar o branding do trainer
+ *   - Carregar o branding do Personal Trainer
  *   - Redirecionar para o dashboard correcto
  *
  * Esta página não precisa de saber para onde redirecionar —
@@ -12,13 +12,13 @@
  */
 
 import { useState } from 'react';
-
+import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { emailRules, passwordRules } from '@/utils/validators';
 import { toast } from 'react-toastify';
 import { Dumbbell, Eye, EyeOff, Loader2 } from 'lucide-react';
 
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/context/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -30,6 +30,8 @@ import {
   CardDescription,
 } from '@/components/ui/card';
 
+const SLOW_REQUEST_THRESHOLD_MS = 5000; // 5 segundos
+
 export default function LoginPage() {
   const { login } = useAuth();
 
@@ -38,6 +40,9 @@ export default function LoginPage() {
 
   // Controla o estado de loading durante a chamada da API
   const [isLoading, setIsLoading] = useState(false);
+
+  // Mostra após SLOW_REQUEST_THRESHOLD_MS para informar o utilizador que a requisição está a iniciar
+  const [isSlowRequest, setIsSlowRequest] = useState(false);
 
   // React Hook Form para gerir o formulário de login
   const {
@@ -53,6 +58,13 @@ export default function LoginPage() {
 
   async function onSubmit(data) {
     setIsLoading(true);
+    setIsSlowRequest(false);
+
+    // Timer: se o pedido demorar mais que 5s, avisa o utilizador que a requisição está a iniciar
+    const slowTimer = setTimeout(() => {
+      setIsSlowRequest(true);
+    }, SLOW_REQUEST_THRESHOLD_MS);
+
     try {
       // AuthContext.login() trata de toda a lógica de autenticação e redirecionamento
       await login(data.email, data.password);
@@ -63,7 +75,9 @@ export default function LoginPage() {
         'Email ou password inválidos. Tente novamente.';
       toast.error(message);
     } finally {
+      clearTimeout(slowTimer);
       setIsLoading(false);
+      setIsSlowRequest(false);
     }
   }
 
@@ -147,6 +161,15 @@ export default function LoginPage() {
                 )}
               </div>
 
+              {/* Mensagem de requisição lenta */}
+              {isSlowRequest && (
+                <div className="rounded-md bg-primary/5 border border-primary/20 px-3 py-2">
+                  <p className="text-xs text-muted-foreground text-center">
+                    O servidor está a iniciar. Por favor aguarda uns segundos...
+                  </p>
+                </div>
+              )}
+
               {/* Botão de submit */}
               <Button
                 type="submit"
@@ -156,8 +179,8 @@ export default function LoginPage() {
                 {isLoading ? (
                   <>
                     {/* Spinner inline durante o loading */}
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />A
-                    entrar...
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    {isSlowRequest ? 'A ligar ao servidor...' : 'A entrar...'}
                   </>
                 ) : (
                   'Entrar'
@@ -167,10 +190,24 @@ export default function LoginPage() {
           </CardContent>
         </Card>
 
-        <p className="text-center text-xs text-muted-foreground mt-6">
-          Problema a aceder?{' '}
-          <span className="text-primary">Contacta o teu treinador</span>
-        </p>
+        {/* Rodapé — link para registo + link de suporte */}
+        <div className="flex flex-col items-center gap-2 mt-6">
+          <p className="text-sm text-muted-foreground">
+            És Personal Trainer e ainda não tens conta?{' '}
+            <Link
+              to="/signup"
+              className="text-primary font-medium hover:underline"
+            >
+              Regista-te aqui
+            </Link>
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Problema a aceder?{' '}
+            <span className="text-primary cursor-pointer hover:underline">
+              Contacta o teu treinador
+            </span>
+          </p>
+        </div>
       </div>
     </div>
   );

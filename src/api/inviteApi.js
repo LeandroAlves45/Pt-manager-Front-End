@@ -2,7 +2,7 @@
  * inviteApi.js — camada de acesso à API para o fluxo de convite de clientes (AU-09).
  *
  * Três funções distintas:
- *   generateInvite   — trainer gera o link (requer autenticação)
+ *   generateInvite   — Personal Trainer gera o link (requer autenticação)
  *   validateInvite   — valida o token ao carregar /invite/:token (público)
  *   setPasswordViaInvite — cliente define a password (público, devolve JWT)
  *
@@ -16,7 +16,7 @@ import api from './axiosConfig';
 
 /**
  * Gera um link de convite para um cliente.
- * Requer que o utilizador autenticado seja trainer com subscrição activa.
+ * Requer que o utilizador autenticado seja Personal Trainer com subscrição activa.
  * @param {string} clientId - UUID do cliente
  * @returns {Promise<{invite_link: string, expires_in_days: number}>}
  */
@@ -35,7 +35,7 @@ export const generateInvite = async (clientId) => {
  * @returns {Promise<{valid: boolean, client_name: string, message: string}>}
  */
 export const validateInvite = async (token) => {
-  const response = await api.get(`/api/v1/invites/validate/${token}`);
+  const response = await api.get(`/api/v1/invite/validate/${token}`);
   return response.data;
 };
 
@@ -48,7 +48,7 @@ export const validateInvite = async (token) => {
  * @returns {Promise<{access_token: string, role: string, user_id: string, full_name: string}>}
  */
 export const setPasswordViaInvite = async (token, newPassword) => {
-  const response = await api.post(`/api/v1/invites/set-password/${token}`, {
+  const response = await api.post(`/api/v1/invite/set-password/${token}`, {
     newPassword: newPassword,
   });
   return response.data;

@@ -3,8 +3,8 @@
  *
  * Completamente separado do TrainerLayout:
  *   - Sidebar própria com navegação de admin
- *   - Sem branding do trainer (usa sempre o tema PT Manager por defeito)
- *   - Cor primária fixa — não é afectada pelas settings de nenhum trainer
+ *   - Sem branding do Personal Trainer (usa sempre o tema PT Manager por defeito)
+ *   - Cor primária fixa — não é afectada pelas settings de nenhum Personal Trainer
  */
 
 import { useState } from 'react';
@@ -15,6 +15,9 @@ import {
   Menu,
   LogOut,
   ShieldCheck,
+  Dumbbell,
+  Apple,
+  Pill,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -25,11 +28,14 @@ import {
   SheetTrigger,
   SheetTitle,
 } from '@/components/ui/sheet';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/context/useAuth';
 
 const navItems = [
   { label: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
   { label: 'Trainers', href: '/admin/trainers', icon: Users },
+  { label: 'Exercícios', href: '/admin/exercicios', icon: Dumbbell },
+  { label: 'Alimentos', href: '/admin/alimentos', icon: Apple },
+  { label: 'Suplementos', href: '/admin/suplementos', icon: Pill },
 ];
 
 function getInitials(name = '') {
@@ -46,7 +52,7 @@ function NavContent({ onNavigate }) {
   const { user, logout } = useAuth();
 
   return (
-    <div className="flex h-full felx-col">
+    <div className="flex flex-col h-full">
       {/* Cabeçalho do admin */}
       <div className="flex items-center gap-3 px-4 py-6 border-b border-border">
         <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">

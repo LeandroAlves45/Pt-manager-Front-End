@@ -9,7 +9,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { formatDate, parseNullableFloat, parseNullableInt } from '@/utils/formatters';
 import { toast } from 'react-toastify';
-import { ClipboardList, CheckCircle, Loader2 } from 'lucide-react';
+import { ClipboardList, CheckCircle, Loader2, CalendarClock } from 'lucide-react';
 import { getMyCheckIns, respondToCheckIn } from '@/api/clientPortalApi';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -47,7 +47,7 @@ export default function MyCheckIns() {
       const data = await getMyCheckIns();
       setCheckIns(data);
     } catch (error) {
-      toast.error('Erro ao carregar check-ins');
+      toast.error(error.response?.data?.detail || 'Erro ao carregar check-ins');
     } finally {
       setLoading(false);
     }
@@ -130,8 +130,14 @@ export default function MyCheckIns() {
                       Avaliação solicitada
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {formatDate(checkin.requested_at)}
+                      Pedido em {formatDate(checkin.requested_at)}
                     </p>
+                    {checkin.target_date && (
+                      <p className="text-xs text-primary font-medium flex items-center gap-1 mt-0.5">
+                        <CalendarClock className="h-3 w-3" />
+                        Responde até {formatDate(checkin.target_date)}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <Button size="sm" onClick={() => openRespondDialog(checkin)}>
@@ -158,6 +164,12 @@ export default function MyCheckIns() {
                     <p className="text-sm font-medium text-foreground">
                       {formatDate(checkin.requested_at)}
                     </p>
+                    {checkin.target_date && (
+                        <p className="text-xs text-muted-foreground flex items-center gap-1">
+                          <CalendarClock className="h-3 w-3" />
+                          Alvo: {formatDate(checkin.target_date)}
+                        </p>
+                      )}
                     <Badge variant={variant}>{label}</Badge>
                   </div>
                   {checkin.status === 'completed' && (

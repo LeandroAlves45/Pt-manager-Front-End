@@ -29,6 +29,7 @@ import {
   ArchiveRestore,
   CalendarPlus,
   Package,
+  Link,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getInitials, getStatusColor, getStatusLabel } from '@/lib/helpers';
@@ -51,6 +52,7 @@ export default function ClientTable({
   onArchiveClient,
   onScheduleSession,
   onPurchasePack,
+  onGenerateInvite,
 }) {
   //Estado Local de componente
   const [search, setSearch] = useState('');
@@ -268,6 +270,14 @@ export default function ClientTable({
                           }}
                         >
                           <Package className="h-4 w-4 mr-2" /> Comprar Pack
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onGenerateInvite(client);
+                          }}
+                        >
+                          <Link className="h-4 w-4 mr-2" /> Gerar Link de Convite
                         </DropdownMenuItem>
                         <DropdownMenuSeparator className="bg-border" />
                         <DropdownMenuItem

@@ -40,7 +40,7 @@ export const useDashboardStats = () => {
     //Clientes em risco (sem sessão agendada e pack a acabar)
     clientsAtRisk: clients.filter((c) => {
       if (!c.active_pack) return true; // Sem pack ativo já é um risco
-      if (c.active_pack.sessions_remaining <= 2) return true; // Pack quase acabando
+      if (c.active_pack.sessions_remaining <= 2) return true; // Pack quase a acabar
       return false;
     }),
 

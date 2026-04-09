@@ -61,7 +61,7 @@ export default function ClientsAtRisk({ clients }) {
                     : 'border-orange-500 text-orange-500'
                 }
               >
-                {!client.active_pack ? 'Sem pack' : 'Acabando'}
+                {!client.active_pack ? 'Sem pack' : 'A acabar'}
               </Badge>
             </div>
           ))}

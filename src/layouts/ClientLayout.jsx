@@ -3,17 +3,17 @@
  *
  * Navegação simplificada: apenas as secções que o cliente pode ver.
  * Sem acesso a funcionalidades de gestão — tudo é read-only excepto check-ins.
- * O branding (logo, cor) do trainer é aplicado via AuthContext no login.
+ * O branding (logo, cor) do Personal Trainer é aplicado via AuthContext no login.
  */
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, Outlet } from 'react-router-dom';
 import {
   LayoutDashboard,
   Dumbbell,
   UtensilsCrossed,
   ClipboardList,
-  Pill,
+  UserRound,
   Menu,
   LogOut,
 } from 'lucide-react';
@@ -26,14 +26,15 @@ import {
   SheetTrigger,
   SheetTitle,
 } from '@/components/ui/sheet';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/context/useAuth';
+import { getPortalBranding } from '@/api/clientPortalApi';
 
 const navItems = [
   { label: 'Dashboard', href: '/cliente/dashboard', icon: LayoutDashboard },
   { label: 'Plano de Treino', href: '/cliente/plano', icon: Dumbbell },
   { label: 'Nutrição', href: '/cliente/nutricao', icon: UtensilsCrossed },
   { label: 'Check-Ins', href: '/cliente/checkins', icon: ClipboardList },
-  { label: 'Suplementação', href: '/cliente/suplementos', icon: Pill },
+  { label: 'Perfil', href: '/cliente/perfil', icon: UserRound },
 ];
 
 function getInitials(name = '') {
@@ -47,28 +48,67 @@ function getInitials(name = '') {
 
 function NavContent({ onNavigate }) {
   const location = useLocation();
-  const { user, trainerSettings, logout } = useAuth();
-  const AppName = trainerSettings?.app_name ?? 'PT Manager';
+  const { user, trainerSettings, logout, fetchClientBranding } = useAuth();
+  const [brandingFallback, setBrandingFallback] = useState(null);
+
+  useEffect(() => {
+    if (trainerSettings?.logo_url || trainerSettings?.app_name) return;
+
+    let active = true;
+
+    getPortalBranding()
+      .then((data) => {
+        if (!active) return;
+        setBrandingFallback(data);
+      })
+      .catch(() => {
+        // Mantemos o fallback visual local caso o branding nao esteja disponivel.
+      });
+
+    fetchClientBranding?.().catch(() => {
+      // O contexto tenta sincronizar o branding global em paralelo.
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [trainerSettings?.app_name, trainerSettings?.logo_url, fetchClientBranding]);
+
+  const resolvedBranding = useMemo(
+    () => ({
+      app_name: trainerSettings?.app_name ?? brandingFallback?.app_name ?? 'PT Manager',
+      logo_url: trainerSettings?.logo_url ?? brandingFallback?.logo_url ?? null,
+    }),
+    [trainerSettings?.app_name, trainerSettings?.logo_url, brandingFallback]
+  );
+
+  const logoUrl = resolvedBranding.logo_url;
+  const AppName = resolvedBranding.app_name;
 
   return (
-    <div className="flex h-full felx-col">
-      {/* Logo do trainer ou fallback */}
-      <div className="flex items-center justify-center px-4 py-6 border-b border-border">
-        {trainerSettings?.logo_url ? (
-          <img
-            src={trainerSettings.logo_url}
-            alt={AppName}
-            className="h-16 w-auto object-contain max-w-45"
-          />
-        ) : (
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Dumbbell className="h-5 w-5 text-primary" />
-            </div>
-            <span className="font-bold text-base text-foreground">
+    <div className="flex h-full flex-col">
+      {/* Logo do Personal Trainer ou fallback */}
+      <div className="flex flex-col items-center justify-center px-4 py-5 border-b border-border gap-2">
+        {logoUrl ? (
+          <>
+            <img
+              src={logoUrl}
+              alt={AppName}
+              className="max-h-full max-w-full rounded-lg object-contain"
+            />
+            <span className="font-bold text-base text-foreground text-center">
               {AppName}
             </span>
-          </div>
+          </>
+        ) : (
+          <>
+            <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+              <Dumbbell className="h-7 w-7 text-primary" />
+            </div>
+            <span className="font-bold text-base text-foreground text-center">
+              {AppName}
+            </span>
+          </>
         )}
       </div>
 
@@ -129,6 +169,42 @@ function NavContent({ onNavigate }) {
 
 export default function ClientLayout() {
   const [open, setOpen] = useState(false);
+  const { trainerSettings, fetchClientBranding } = useAuth();
+  const [brandingFallback, setBrandingFallback] = useState(null);
+
+  useEffect(() => {
+    if (trainerSettings?.logo_url || trainerSettings?.app_name) return;
+
+    let active = true;
+
+    getPortalBranding()
+      .then((data) => {
+        if (!active) return;
+        setBrandingFallback(data);
+      })
+      .catch(() => {
+        // Sem branding remoto, mantemos o fallback standard do portal.
+      });
+
+    fetchClientBranding?.().catch(() => {
+      // O contexto tenta sincronizar o branding global em paralelo.
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [trainerSettings?.app_name, trainerSettings?.logo_url, fetchClientBranding]);
+
+  const resolvedBranding = useMemo(
+    () => ({
+      app_name: trainerSettings?.app_name ?? brandingFallback?.app_name ?? 'PT Manager',
+      logo_url: trainerSettings?.logo_url ?? brandingFallback?.logo_url ?? null,
+    }),
+    [trainerSettings?.app_name, trainerSettings?.logo_url, brandingFallback]
+  );
+
+  const logoUrl = resolvedBranding.logo_url;
+  const AppName = resolvedBranding.app_name;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -153,10 +229,23 @@ export default function ClientLayout() {
             <NavContent onNavigate={() => setOpen(false)} />
           </SheetContent>
         </Sheet>
-        <div className="flex items-center gap-2">
-          <Dumbbell className="h-5 w-5 text-primary" />
-          <span className="font-semibold text-foreground">{AppName}</span>
-        </div>
+        {logoUrl ? (
+          <div className="flex items-center gap-2 min-w-0">
+            <img
+              src={logoUrl}
+              alt={AppName}
+              className="h-8 w-auto object-contain shrink-0"
+            />
+            <span className="font-semibold text-foreground truncate">
+              {AppName}
+            </span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <Dumbbell className="h-5 w-5 text-primary" />
+            <span className="font-semibold text-foreground">{AppName}</span>
+          </div>
+        )}
         <div className="w-9" />
       </header>
 

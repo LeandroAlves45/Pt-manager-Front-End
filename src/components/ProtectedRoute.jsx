@@ -12,7 +12,7 @@
  */
 
 import { Navigate } from 'react-router-dom';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/context/useAuth';
 
 /**
  * Dado um role, devolve o caminho do dashboard correcto.
@@ -56,7 +56,7 @@ export default function ProtectedRoute({ children, requiredRole }) {
   }
 
   if (requiredRole && user.role !== requiredRole) {
-    // Superuser pode aceder a rotas de trainer, tem acesso total
+    // Superuser pode aceder a rotas de Personal Trainer, tem acesso total
     const isSuperuserAccessingTrainerRoute =
       user.role === 'superuser' && requiredRole === 'trainer';
 

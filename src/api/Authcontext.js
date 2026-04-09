@@ -5,7 +5,7 @@
  *   - Armazenar o utilizador autenticado e o seu token JWT
  *   - Executar o login (chamar a API, guardar token, carregar branding)
  *   - Executar o logout (limpar estado e redirecionar)
- *   - Injectar o tema de cor do trainer via CSS variables no documento
+ *   - Injectar o tema de cor do Personal Trainer via CSS variables no documento
  *   - Expor booleans de role para simplificar guards nos componentes
  *
  * Padrão de uso:
@@ -78,7 +78,7 @@ function hexToHSL(hex) {
 }
 
 // ============================================================
-// Função utilitária: aplica a cor do trainer como CSS variables
+// Função utilitária: aplica a cor do Personal Trainer como CSS variables
 //
 // Ao mudar --primary em runtime, todos os componentes que usam
 // bg-primary, text-primary, border-primary actualizam automaticamente
@@ -107,7 +107,7 @@ export function AuthProvider({ children }) {
   // Token JWT guardado no localStorage para persistência entre sessões
   const [token, setToken] = useState(() => localStorage.getItem('pt_token'));
 
-  // Settings de branding do trainer: { primary_color, logo_url, app_name } ou null
+  // Settings de branding do Personal Trainer: { primary_color, logo_url, app_name } ou null
   const [trainerSettings, setTrainerSettings] = useState(null);
 
   // true enquanto a app verifica se há token guardado válido
@@ -128,12 +128,12 @@ export function AuthProvider({ children }) {
 
       setTrainerSettings(settings);
 
-      // Aplica a cor do trainer imediatamente após carregar
+      // Aplica a cor do Personal Trainer imediatamente após carregar
       if (settings?.primary_color) {
         applyBrandColor(settings.primary_color);
       }
     } catch {
-      // Se não existirem settings (trainer novo), usa a cor por defeito
+      // Se não existirem settings (Personal Trainer novo), usa a cor por defeito
       applyBrandColor('#00A8E8');
     }
   }, []);
@@ -165,7 +165,7 @@ export function AuthProvider({ children }) {
         setUser(userData);
         setToken(storedToken);
 
-        // Carrega branding se for trainer
+        // Carrega branding se for Personal Trainer
         if (userData.role === 'trainer') {
           await fetchTrainerSettings();
         }
@@ -203,7 +203,7 @@ export function AuthProvider({ children }) {
       const userData = profileResponse.data;
       setUser(userData);
 
-      // Carrega e aplica o branding se for trainer
+      // Carrega e aplica o branding se for Personal Trainer
       if (role === 'trainer') {
         await fetchTrainerSettings();
       }

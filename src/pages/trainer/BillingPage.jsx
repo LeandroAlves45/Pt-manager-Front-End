@@ -1,5 +1,5 @@
 /**
- * BillingPage.jsx — dashboard de subscrição do trainer.
+ * BillingPage.jsx — dashboard de subscrição do Personal Trainer.
  *
  * Mostra: estado actual, tier, contagem de clientes, trial countdown,
  * e botões para o Stripe Checkout e Billing Portal.
@@ -120,6 +120,10 @@ export default function BillingPage() {
     subscription.status
   );
 
+  // Trainer Isento: ativo no tier Pro sem custo mensal
+  const isExempt =
+    isActive && subscription.tier === 'pro' && subscription.monthly_eur === 0;
+
   // Progresso de clientes : quantos % do limite estão usados
   const clientProgress = subscription.max_clients
     ? Math.round(
@@ -151,6 +155,22 @@ export default function BillingPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
+            {/* Personal Trainer isento — mostra banner informativo em vez dos botões Stripe */}
+            {isExempt && (
+              <div className="rounded-lg bg-green-500/10 border border-green-500/20 p-3 flex items-start gap-3">
+                <ShieldCheck className="h-5 w-5 text-green-500 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-green-500">
+                    Acesso completo — conta isenta
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Esta conta tem isenção permanente de faturação. Não é
+                    necessário configurar método de pagamento.
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* Aviso de trial */}
             {isTrialing && trialDaysLeft !== null && (
               <div className="rounded-lg bg-primary/10 border border-primary/20 p-3">

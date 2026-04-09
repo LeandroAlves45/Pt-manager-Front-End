@@ -1,5 +1,5 @@
 /**
- * TrainerSignupPage.jsx — página de registo público de novo trainer.
+ * TrainerSignupPage.jsx — página de registo público de novo Personal Trainer.
  *
  * Fluxo após submissão bem sucedida:
  *   1. API cria o utilizador + subscrição Stripe em trial
@@ -10,14 +10,14 @@
  */
 
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { emailRules, trainerPasswordRules, fullNameRules } from '@/utils/validators';
 import { toast } from 'react-toastify';
 import { Dumbbell, Eye, EyeOff, Loader2 } from 'lucide-react';
 
 import { signupTrainer } from '../api/authApi';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -30,7 +30,6 @@ import {
 } from '../components/ui/card';
 
 export default function TrainerSignupPage() {
-  const navigate = useNavigate();
   const { login } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -50,7 +49,7 @@ export default function TrainerSignupPage() {
   async function onSubmit(data) {
     setIsLoading(true);
     try {
-      // Regista o trainer (cria user + Stripe trial)
+      // Regista o Personal Trainer (cria user + Stripe trial)
       await signupTrainer(data);
 
       // Login automático com as credenciais fornecidas
@@ -146,9 +145,9 @@ export default function TrainerSignupPage() {
                     tabIndex={-1}
                   >
                     {showPassword ? (
-                      <EyeOffIcon className="h-4 w-4" />
+                      <EyeOff className="h-4 w-4" />
                     ) : (
-                      <EyeIcon className="h-4 w-4" />
+                      <Eye className="h-4 w-4" />
                     )}
                   </button>
                 </div>

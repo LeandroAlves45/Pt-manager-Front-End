@@ -1,3 +1,17 @@
+/**
+ * MuscleMultiSelect.jsx — dropdown multi-selecção de grupos musculares.
+ *
+ * Recebe e devolve uma string separada por vírgula (formato do backend).
+ * Internamente converte para array para facilitar a lógica de selecção.
+ *
+ * Lista fixa: Peito, Costas, Ombros, Bicep, Tricep, Quadricep,
+ *             Isquiotibiais, Glúteo, Gémeos, Abdominais, Trapézios
+ *
+ * @param {string}   value    - Valor actual: "Peito, Tricep"
+ * @param {Function} onChange - Callback com nova string: "Peito, Tricep, Glúteo"
+ * @param {string}   [error]  - Mensagem de erro para mostrar abaixo do trigger
+ */
+
 import { useState, useRef, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { ChevronDown, X } from 'lucide-react';
@@ -63,6 +77,7 @@ export default function MuscleMultiSelect({ value = '', onChange, error }) {
 
   return (
     <div ref={ref} className="relative">
+
       {/* Trigger — mostra músculos selecionados como badges */}
       <div
         role="button"
@@ -109,15 +124,14 @@ export default function MuscleMultiSelect({ value = '', onChange, error }) {
         />
       </div>
 
-      {/* Dropdown com grupos de músculos */}
+      {/* Dropdown com lista flat de grupos musculares */}
       {open && (
         <div className="absolute z-50 mt-1 w-full rounded-md border border-border bg-popover shadow-lg overflow-hidden">
-          <div className="max-h-64 overflow-y-auto p-1">
-            {Object.entries(MUSCLE_GROUPS).map(([group, muscles]) => (
-              <div key={group} className="mb-1">
-                {/* Cabeçalho do grupo — não é clicável */}
-                <p className="text-xs font-semibold text-muted-foreground px-2 py-1 uppercase tracking-wide">
-                  {group}
+          <div className="max-h-60 overflow-y-auto p-1">
+            {Object.entries(MUSCLE_GROUPS).map(([category, muscles]) => (
+              <div key={category}>
+                <p className="text-xs font-semibold text-muted-foreground px-3 py-1 mt-1">
+                  {category}
                 </p>
                 {muscles.map((muscle) => {
                   const isSelected = selected.includes(muscle);
@@ -136,12 +150,11 @@ export default function MuscleMultiSelect({ value = '', onChange, error }) {
                         }
                       `}
                     >
-                      {/* Checkbox visual */}
                       <span
                         className={`
-                        h-4 w-4 rounded border shrink-0 flex items-center justify-center
-                        ${isSelected ? 'bg-primary border-primary' : 'border-input'}
-                      `}
+                          h-4 w-4 rounded border shrink-0 flex items-center justify-center
+                          ${isSelected ? 'bg-primary border-primary' : 'border-input'}
+                        `}
                       >
                         {isSelected && (
                           <svg
@@ -166,7 +179,7 @@ export default function MuscleMultiSelect({ value = '', onChange, error }) {
             ))}
           </div>
 
-          {/* Rodapé com contagem */}
+          {/* Rodapé com contagem + botão de limpar tudo */}
           {selected.length > 0 && (
             <div className="border-t border-border px-3 py-2 flex items-center justify-between">
               <span className="text-xs text-muted-foreground">

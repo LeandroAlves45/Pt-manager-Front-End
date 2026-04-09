@@ -5,7 +5,7 @@
  *   - Armazenar o utilizador autenticado e o seu token JWT
  *   - Executar o login (chamar a API, guardar token, carregar branding)
  *   - Executar o logout (limpar estado e redirecionar)
- *   - Injectar o tema de cor do trainer via CSS variables no documento
+ *   - Injectar o tema de cor do Personal Trainer via CSS variables no documento
  *   - Expor booleans de role para simplificar guards nos componentes
  *
  * Padrão de uso:
@@ -16,24 +16,18 @@
  */
 
 import {
-  createContext,
-  useContext,
   useState,
   useEffect,
   useCallback,
 } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axiosConfig';
+import { getPortalBranding } from '../api/clientPortalApi';
 import { hexToHSL } from '../utils/formatters';
+import { AuthContext } from './AuthContextStore';
 
 // ============================================================
-// Criação do contexto de autenticação - valor por defeito é null
-// ============================================================
-
-const AuthContext = createContext(null);
-
-// ============================================================
-// Função utilitária: aplica a cor do trainer como CSS variables
+// Função utilitária: aplica a cor do Personal Trainer como CSS variables
 //
 // Ao mudar --primary em runtime, todos os componentes que usam
 // bg-primary, text-primary, border-primary actualizam automaticamente
@@ -49,6 +43,40 @@ function applyBrandColor(hexColor) {
   document.documentElement.style.setProperty('--primary', hsl);
   document.documentElement.style.setProperty('--sidebar-primary', hsl);
   document.documentElement.style.setProperty('--ring', hsl);
+
+  // Fundo da sidebar — mesmo hue da cor primária mas muito escuro (6% lightness).
+  // Isto dá o efeito de "sidebar colorida" sem comprometer a legibilidade.
+  // Ex: azul #00A8E8 → hue ≈ 197, sidebar fica "197 100% 6%" (azul muito escuro)
+  const huePart = hsl.split(' ')[0]; // extrai apenas o hue (ex: "197")
+  const satPart = hsl.split(' ')[1]; // extrai saturação (ex: "100%")
+  document.documentElement.style.setProperty(
+    '--sidebar-background',
+    `${huePart} ${satPart} 6%`
+  );
+}
+
+/**
+ * applyBodyColor — aplica a cor de fundo do body (--background, --card, --popover).
+ * Independente da cor primária — permite body cinzento com sidebar azul, por exemplo.
+ * Chamada no login, restore de sessão e ao guardar settings.
+ * Se hexColor for null/vazio, repõe os valores padrão do tema.
+ */
+function applyBodyColor(hexColor) {
+  if (!hexColor) {
+    // Repor os valores padrão do tema dark
+    document.documentElement.style.removeProperty('--background');
+    document.documentElement.style.removeProperty('--card');
+    document.documentElement.style.removeProperty('--popover');
+    return;
+  }
+  const hsl = hexToHSL(hexColor);
+  document.documentElement.style.setProperty('--background', hsl);
+  // Card e popover ligeiramente mais claros (+ 4% lightness)
+  const parts = hsl.split(' ');
+  const lightness = Math.min(parseFloat(parts[2]) + 4, 95);
+  const cardHsl = `${parts[0]} ${parts[1]} ${lightness}%`;
+  document.documentElement.style.setProperty('--card', cardHsl);
+  document.documentElement.style.setProperty('--popover', cardHsl);
 }
 
 // ============================================================
@@ -62,7 +90,7 @@ export function AuthProvider({ children }) {
   // Token JWT guardado no localStorage — lido aqui para sincronizar o estado
   const [token, setToken] = useState(() => localStorage.getItem('pt_token'));
 
-  // Settings de branding do trainer: { primary_color, logo_url, app_name } | null
+  // Settings de branding do Personal Trainer: { primary_color, logo_url, app_name } | null
   const [trainerSettings, setTrainerSettings] = useState(null);
 
   // true enquanto a app verifica se há um token guardado válido (splash inicial)
@@ -71,8 +99,33 @@ export function AuthProvider({ children }) {
   const navigate = useNavigate();
 
   // ----------------------------------------------------------
-  // Carregar settings de branding do trainer
-  // Chamado após login com role="trainer" ou no restore de sessão
+  // Aplicar um payload de branding no estado e nas CSS variables
+  // ----------------------------------------------------------
+  const applyBrandingSettings = useCallback((settings) => {
+    const normalizedSettings = settings
+      ? {
+          primary_color: settings.primary_color ?? settings.primaryColor ?? null,
+          body_color: settings.body_color ?? settings.bodyColor ?? null,
+          logo_url: settings.logo_url ?? settings.logoUrl ?? null,
+          app_name: settings.app_name ?? settings.appName ?? 'PT Manager',
+        }
+      : null;
+
+    setTrainerSettings(normalizedSettings);
+
+    if (normalizedSettings?.primary_color) {
+      applyBrandColor(normalizedSettings.primary_color);
+    } else {
+      applyBrandColor('#00A8E8'); // cor por defeito se não houver settings
+    }
+
+    // body_color: aplica sempre (null repõe cor padrão do tema)
+    applyBodyColor(normalizedSettings?.body_color ?? null);
+  }, []);
+
+  // ----------------------------------------------------------
+  // Carregar settings do Personal Trainer
+  // Chamado após login com role "trainer" ou no restore de sessão
   // ----------------------------------------------------------
 
   const fetchTrainerSettings = useCallback(async () => {
@@ -80,18 +133,23 @@ export function AuthProvider({ children }) {
       // GET /api/v1/trainer-profile/settings — devolve primary_color, logo_url, app_name
       const response = await api.get('/api/v1/trainer-profile/settings');
       const settings = response.data;
-
-      setTrainerSettings(settings);
-
-      // Aplica a cor do trainer imediatamente após carregar
-      if (settings?.primary_color) {
-        applyBrandColor(settings.primary_color);
-      }
+      applyBrandingSettings(settings);
     } catch {
-      // Se não existirem settings (trainer novo), usa a cor por defeito
-      applyBrandColor('#00A8E8');
+      applyBrandingSettings(null); // se não existirem settings, usa as cores por defeito do tema
     }
-  }, []);
+  }, [applyBrandingSettings]);
+
+  // ----------------------------------------------------------
+  // Carregar branding herdado no portal do cliente
+  // ----------------------------------------------------------
+  const fetchClientBranding = useCallback(async () => {
+    try {
+      const settings = await getPortalBranding();
+      applyBrandingSettings(settings);
+    } catch {
+      applyBrandingSettings(null); // se falhar, usa as cores por defeito do tema
+    }
+  }, [applyBrandingSettings]);
 
   // ----------------------------------------------------------
   // Restaurar sessão ao carregar a app
@@ -120,10 +178,12 @@ export function AuthProvider({ children }) {
         setUser(userData);
         setToken(storedToken);
 
-        // Carrega branding se for trainer
-        if (userData.role === 'trainer') {
-          await fetchTrainerSettings();
-        }
+      // Carrega branding conforme o role autenticado
+      if (userData.role === 'trainer') {
+        await fetchTrainerSettings();
+      } else if (userData.role === 'client') {
+        await fetchClientBranding();
+      }
       } catch {
         // Token inválido ou expirado — limpa o estado
         // O interceptor 401 do Axios já redireciona para /login
@@ -136,7 +196,7 @@ export function AuthProvider({ children }) {
     };
 
     restoreSession();
-  }, [fetchTrainerSettings]);
+  }, [fetchTrainerSettings, fetchClientBranding]);
 
   // ----------------------------------------------------------
   // Login
@@ -144,7 +204,7 @@ export function AuthProvider({ children }) {
   // 1. Chama POST /api/v1/auth/login com email e password
   // 2. Guarda o token JWT no localStorage
   // 3. Busca o perfil completo do utilizador
-  // 4. Carrega branding (se trainer)
+  // 4. Carrega branding do Personal Trainer
   // 5. Redireciona para o dashboard correcto baseado no role
   // ----------------------------------------------------------
 
@@ -169,6 +229,8 @@ export function AuthProvider({ children }) {
       // Carrega e aplica branding antes de redirecionar (evita flash de cor errada)
       if (role === 'trainer') {
         await fetchTrainerSettings();
+      } else if (role === 'client') {
+        await fetchClientBranding();
       }
 
       // Redireciona para o dashboard correcto baseado no role do JWT
@@ -181,7 +243,7 @@ export function AuthProvider({ children }) {
         navigate('/cliente/dashboard');
       }
     },
-    [navigate, fetchTrainerSettings]
+    [navigate, fetchTrainerSettings, fetchClientBranding]
   );
 
   // ----------------------------------------------------------
@@ -199,6 +261,9 @@ export function AuthProvider({ children }) {
 
     // Repõe a cor por defeito (PT Manager azul) ao fazer logout
     applyBrandColor('#00A8E8');
+    applyBodyColor(null); // repõe cor de fundo padrão do tema
+
+    // Redireciona para a página de login
 
     navigate('/login');
   }, [navigate]);
@@ -216,8 +281,9 @@ export function AuthProvider({ children }) {
     // Funções
     login,
     logout,
-    fetchTrainerSettings, // exposto para o TrainerProfile actualizar o branding em runtime
-    applyBrandColor, // exposto para permitir actualizar a cor sem recarregar settings
+    fetchTrainerSettings, // exposto para o TrainerProfile atualizar o branding em runtime
+    fetchClientBranding,
+    applyBrandColor, // exposto para permitir atualizar a cor sem recarregar settings
 
     // Booleans de conveniência — evitam comparações de string nos componentes
     isAuthenticated: !!user,
@@ -227,23 +293,4 @@ export function AuthProvider({ children }) {
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
-
-// ============================================================
-// Hook de conveniência — a única forma de consumir o contexto
-//
-// Uso: const { user, login, isTrainer } = useAuth();
-// Lança erro se usado fora do AuthProvider (detecta erros cedo)
-// ============================================================
-
-export function useAuth() {
-  const context = useContext(AuthContext);
-
-  if (!context) {
-    throw new Error(
-      'useAuth deve ser usado dentro de <AuthProvider>. Verifica o main.jsx.'
-    );
-  }
-
-  return context;
 }

@@ -4,7 +4,7 @@
  * Arquitectura de 3 dashboards:
  *   /login              → LoginPage (pública)
  *   /admin/*            → Layout de superuser (a construir na Fase 2)
- *   /trainer/*          → Layout de trainer (actual conteúdo da app)
+ *   /trainer/*          → Layout de Personal Trainer (actual conteúdo da app)
  *   /cliente/*          → Portal do cliente (a construir na Fase 3)
  *
  * Cada namespace de rotas tem o seu próprio ProtectedRoute com o role exigido.
@@ -21,14 +21,13 @@ import ProtectedRoute from './components/ProtectedRoute';
 // Páginas públicas
 import LoginPage from './pages/LoginPage';
 import TrainerSignupPage from './pages/TrainerSignupPage';
-import ClientFirstLoginPage from './pages/ClientFirstLoginPage';
 
 // Layouts
 import TrainerLayout from './layouts/TrainerLayout';
 import AdminLayout from './layouts/AdminLayout';
 import ClientLayout from './layouts/ClientLayout';
 
-// Páginas do Trainer
+// Páginas do Personal Trainer
 import Dashboard from './pages/Dashboard';
 import Clients from './pages/Clients';
 import ClientDetails from './pages/ClientDetails';
@@ -36,20 +35,31 @@ import Sessions from './pages/Sessions';
 import Packs from './pages/Packs';
 import Exercises from './pages/Exercises';
 import TrainingPlans from './pages/TrainingPlans';
+import TrainingPlanEditorPage from './pages/trainer/TrainingPlanEditorPage';
 import BillingPage from './pages/trainer/BillingPage';
 import TrainerProfilePage from './pages/trainer/TrainerProfilePage';
 import SupplementsPage from './pages/trainer/SupplementPage';
+import NutritionPage from './pages/trainer/NutritionPage';
+import AssessmentsPage from './pages/trainer/AssessmentPage';
+import MealPlanPage from './pages/trainer/MealsPlanPage';
+import ClientCalculatorPage from './pages/trainer/ClientCalculatePage';
 
 // Páginas de Admin
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminTrainers from './pages/admin/AdminTrainers';
+import AdminExercises from './pages/admin/AdminExercises';
+import AdminFoods from './pages/admin/AdminFoods';
+import AdminSupplements from './pages/admin/AdminSupplements';
+
+// Páginas de fluxo público (sem autenticação)
+import ClientFirstLoginPage from './pages/ClientFirstLoginPage';
 
 // Páginas do Cliente
 import ClientDashboard from './pages/client/ClientDashboard';
 import MyTrainingPlan from './pages/client/MyTrainingPlan';
 import MyNutrition from './pages/client/MyNutrition';
 import MyCheckIns from './pages/client/MyCheckins';
-import MySupplements from './pages/client/MySupplements';
+import MyProfile from './pages/client/MyProfile';
 
 // Componente raiz da aplicação.
 
@@ -63,7 +73,7 @@ export default function App() {
       {/* Página de login — acessível a todos */}
       <Route path="/login" element={<LoginPage />} />
 
-      {/* Página de registo de trainers — acessível a todos */}
+      {/* Página de registo de Personal Trainers — acessível a todos */}
       <Route path="/signup" element={<TrainerSignupPage />} />
 
       {/* Raiz redireciona para login — nunca deve ficar em / */}
@@ -94,6 +104,12 @@ export default function App() {
         <Route path="clientes" element={<Clients />} />
         <Route path="clientes/:id" element={<ClientDetails />} />
 
+        {/* Calculadora de macros por cliente */}
+        <Route
+          path="clientes/:id/calculadora"
+          element={<ClientCalculatorPage />}
+        />
+
         {/* Gestão de sessões */}
         <Route path="sessoes" element={<Sessions />} />
 
@@ -106,34 +122,26 @@ export default function App() {
         {/* Gestão de planos de treino */}
         <Route path="planos" element={<TrainingPlans />} />
 
+        {/* Editor de plano de treino */}
+        <Route path="planos/:id" element={<TrainingPlanEditorPage />} />
+
         {/* Página de faturação e subscrição */}
         <Route path="billing" element={<BillingPage />} />
 
-        {/* Página de perfil do trainer */}
+        {/* Página de perfil do Personal Trainer */}
         <Route path="perfil" element={<TrainerProfilePage />} />
 
         {/* Página de nutrição */}
-        <Route
-          path="nutricao"
-          element={
-            <div className="p-6 text-muted-foreground">
-              Nutrição — em construção
-            </div>
-          }
-        />
+        <Route path="nutricao" element={<NutritionPage />} />
 
         {/* Página de avaliação */}
-        <Route
-          path="avaliacoes"
-          element={
-            <div className="p-6 text-muted-foreground">
-              Avaliações — em construção
-            </div>
-          }
-        />
+        <Route path="avaliacoes" element={<AssessmentsPage />} />
 
         {/* Catálogo de suplementos do Personal Trainer */}
         <Route path="suplementos" element={<SupplementsPage />} />
+
+        {/* Página de planos alimentares (NR-01) */}
+        <Route path="planos-alimentares" element={<MealPlanPage />} />
       </Route>
 
       {/* ============================================================
@@ -154,13 +162,17 @@ export default function App() {
         {/* Dashboard de administração */}
         <Route path="dashboard" element={<AdminDashboard />} />
 
-        {/* Gestão de trainers */}
+        {/* Gestão de Personal Trainers */}
         <Route path="trainers" element={<AdminTrainers />} />
+
+        {/* Catálogos globais */}
+        <Route path="exercicios" element={<AdminExercises />} />
+        <Route path="alimentos" element={<AdminFoods />} />
+        <Route path="suplementos" element={<AdminSupplements />} />
       </Route>
 
       {/* ============================================================
                 ROTAS DO CLIENTE — requerem role="client"
-                Fase 3 — portal do cliente a construir
             ============================================================ */}
 
       <Route
@@ -186,8 +198,11 @@ export default function App() {
         {/* Check-ins do cliente */}
         <Route path="checkins" element={<MyCheckIns />} />
 
-        {/* Suplementação do cliente */}
-        <Route path="suplementos" element={<MySupplements />} />
+        {/* Perfil do cliente */}
+        <Route path="perfil" element={<MyProfile />} />
+
+        {/* Suplementação foi integrada em Nutrição — manter redirect para compatibilidade */}
+        <Route path="suplementos" element={<Navigate to="/cliente/nutricao" replace />} />
       </Route>
 
       {/* Fallback para rotas desconhecidas — redireciona para login */}

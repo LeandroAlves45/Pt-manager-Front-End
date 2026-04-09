@@ -11,7 +11,7 @@
 // ---------------------------------------------------------------------------
 
 export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-export const HEX_COLOR_REGEX = /^#([0-9A-Fa-f]{6})$/;
+export const HEX_COLOR_REGEX = /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/;
 export const URL_REGEX = /^https?:\/\/.+/;
 
 // ---------------------------------------------------------------------------
@@ -27,16 +27,22 @@ export const emailRules = {
   },
 };
 
-/** Password cliente — mínimo 6 caracteres */
+/** Password cliente — mínimo 8 caracteres */
 export const passwordRules = {
   required: 'Password é obrigatória',
-  minLength: { value: 6, message: 'A password deve ter pelo menos 6 caracteres' },
+  minLength: {
+    value: 8,
+    message: 'A password deve ter pelo menos 8 caracteres',
+  },
 };
 
-/** Password trainer — mínimo 8 caracteres */
+/** Password Personal Trainer — mínimo 8 caracteres */
 export const trainerPasswordRules = {
   required: 'A password é obrigatória',
-  minLength: { value: 8, message: 'A password deve ter no mínimo 8 caracteres' },
+  minLength: {
+    value: 8,
+    message: 'A password deve ter no mínimo 8 caracteres',
+  },
 };
 
 /**
@@ -67,12 +73,12 @@ export const heightRules = {
   max: { value: 260, message: 'Máximo de 260 cm' },
 };
 
-/** Cor hex #RRGGBB */
+/** Cor hex #RRGGBB ou #RGB */
 export const hexColorRules = {
   required: 'A cor é obrigatória',
   pattern: {
     value: HEX_COLOR_REGEX,
-    message: 'Formato inválido. Use #RRGGBB',
+    message: 'Formato inválido. Use #RRGGBB ou #RGB',
   },
 };
 
@@ -89,15 +95,47 @@ export const videoUrlRules = {
 // ---------------------------------------------------------------------------
 
 /**
- * Verifica se algum dos campos de um objecto contém o termo de pesquisa (case-insensitive).
- * @param {string} query
- * @param {...string} fields
- * @returns {boolean}
+ * Remove acentos e diacríticos de uma string para pesquisa insensível a acentos.
  *
- * Exemplo:
- *   clients.filter(c => matchesSearch(search, c.full_name, c.email, c.phone))
+ * Porquê é necessário:
+ *   .toLowerCase() não remove acentos — "bi" não encontra "Bícep" porque
+ *   "bícep".includes("bi") é false em JavaScript.
+ *
+ *   normalize("NFD") decompõe caracteres acentuados nos seus componentes
+ *   (ex: "é" → "e" + combining accent).
+ *   O regex /\p{M}/gu remove os combining marks, deixando apenas a letra base.
+ *
+ * Exemplos:
+ *   normalize("Bícep")  → "Bicep"
+ *   normalize("Isquiotibiais") → "Isquiotibiais" (sem acentos, já correcto)
+ *   normalize("Trapézio") → "Trapezio"
+ *
+ * @param {string} str
+ * @returns {string} String sem acentos em minúsculas
  */
+
+function normalize(str) {
+  return (str ?? '')
+    .normalize('NFD') // Decompõe caracteres acentuados
+    .replace(/\p{M}/gu, '') // Remove os combining marks
+    .toLowerCase(); // Converte para minúsculas
+}
+
+/**
+ * Verifica se a query coincide com pelo menos um dos campos fornecidos.
+ * Insensível a maiúsculas/minúsculas E a acentos.
+ *
+ * Exemplos:
+ *   matchesSearch('bi', 'Bícep Curl com Halteres', 'Bíceps')  → true
+ *   matchesSearch('bicep', 'nome do exercício', 'Bíceps')      → true
+ *   matchesSearch('trap', 'Encolhimento', 'Trapézios')         → true
+ *
+ * @param {string} query  - Texto introduzido pelo utilizador
+ * @param {...string} fields - Campos a pesquisar (aceita null/undefined)
+ * @returns {boolean}
+ */
+
 export function matchesSearch(query, ...fields) {
-  const q = query.toLowerCase();
-  return fields.some((field) => (field ?? '').toLowerCase().includes(q));
+  const q = normalize(query);
+  return fields.some((field) => normalize(field).includes(q));
 }

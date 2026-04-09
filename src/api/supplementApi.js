@@ -2,8 +2,8 @@
  * supplementsApi.js — camada de acesso à API para suplementos e atribuições.
  *
  * Dois grupos de funções:
- *   1. Catálogo de suplementos (CRUD — trainer)
- *   2. Atribuição a clientes (assign/update/remove — trainer)
+ *   1. Catálogo de suplementos (CRUD — Personal Trainer)
+ *   2. Atribuição a clientes (assign/update/remove — Personal Trainer)
  *   3. Portal do cliente (read-only)
  *
  * Convenção do projecto:
@@ -25,7 +25,7 @@ import api from './axiosConfig';
 
 export const getSupplements = async (includeArchived = false) => {
   const response = await api.get('/api/v1/supplements', {
-    params: { includeArchived: includeArchived },
+    params: { include_archived: includeArchived },
   });
   return response.data;
 };
@@ -42,7 +42,7 @@ export const createSupplement = async (data) => {
 /**
  * Actualiza um suplemento (PATCH — apenas campos enviados são alterados).
  * @param {string} supplementId - UUID do suplemento
- * @param {Object} data - Campos a actualizar (todos opcionais)
+ * @param {Object} data - Campos a atualizar (todos opcionais)
  */
 export const updateSupplement = async (supplementId, data) => {
   const response = await api.patch(`/api/v1/supplements/${supplementId}`, data);
@@ -139,9 +139,9 @@ export const removeClientAssignment = async (clientId, assignmentId) => {
 /**
  * Devolve os suplementos atribuídos ao cliente autenticado.
  * Usado no portal do cliente — o JWT identifica o cliente automaticamente.
- * Não inclui trainer_notes (campo interno do trainer).
+ * Não inclui trainer_notes (campo interno do Personal Trainer).
  */
 export const getMySupplements = async () => {
-  const response = await api.get('/api/v1/my-supplements');
+  const response = await api.get('/api/v1/portal/my-supplements');
   return response.data;
 };

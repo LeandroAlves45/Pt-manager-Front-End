@@ -1,23 +1,28 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { getClients } from '../api/clientsApi';
+import { getClient } from '../api/clientsApi';
 import { getSessions } from '../api/sessionApi';
-import {
-  getClientSupplements,
-  assignSupplement,
-  removeClientAssignment,
-  getSupplements,
-} from '@/api/supplementApi';
 import { generateInvite } from '../api/inviteApi';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { ArrowLeft, Mail, Phone, Calendar, Ruler, Target, Pill, Plus, X, Link, Copy } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import {
+  ArrowLeft,
+  Mail,
+  Phone,
+  Calendar,
+  Ruler,
+  Link,
+  Copy,
+  MessageCircle,
+  User,
+  Dumbbell,
+  KeyRound,
+} from 'lucide-react';
 import {
   getInitials,
   calculateAge,
@@ -26,43 +31,45 @@ import {
   getStatusColor,
   getStatusLabel,
 } from '@/lib/helpers';
-import { set } from 'react-hook-form';
 
 /**
- * Página de detalhes de um cliente
+ * ClientDetails — Página de detalhes de um cliente (rota /trainer/clientes/:id)
  *
- * Acedida via rota / clientes/:id
- * Use Params() extrai o :id da URL.
+ * Estrutura em 4 tabs:
+ *   Perfil        — informação pessoal e pack ativo
+ *   Acesso        — email + geração/cópia de link de convite + partilha WhatsApp
+ *   Suplementação — atribuição e lista de suplementos
+ *   Sessões       — histórico das últimas 10 sessões
  *
- * Mostra: informações pessoais, sessões, progresso, status e suplementos atribuídos.
+ * Razão de negócio: agregar toda a informação do cliente num único ecrã evita
+ * que o Personal Trainer tenha de navegar para outros contextos
  */
 
 export default function ClientDetails() {
   //useParams extrai parâmetros dinâmicos da URL
   const { id } = useParams();
   const navigate = useNavigate();
+
   const [client, setClient] = useState(null);
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Estado dos suplementos atribuídos ao cliente (SU-04)
-  const [assignments, setAssignments] = useState([]); // suplementos já atribuídos
-  const [catalogue, setCatalogue] = useState([]); // catálogo do Personal Trainer para o select
-  const [suppLoading, setSuppLoading] = useState(false);
-  const [selectedSuppId, setSelectedSuppId] = useState(''); // ID seleccionado no dropdown
-  const [assigning, setAssigning] = useState(false);
+  // Tab ativa, começa no Perfil
+  const [activeTab, setActiveTab] = useState('perfil');
+
+  // Link de convite
+  const [inviteLink, setInviteLink] = useState('');
+  const [generatingInvite, setGeneratingInvite] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
         //Busca detalhes do cliente
-        const clients = await getClients({ Client_id: id });
-        if (clients.length > 0) {
-          setClient(clients[0]);
-        }
+        const clientData = await getClient(id);
+        setClient(clientData);
         //Busca sessões do cliente
-        const sessionsData = await getSessions({ Client_id: id });
+        const sessionsData = await getSessions({ client_id: id });
         setSessions(sessionsData);
       } catch (error) {
         toast.error('Erro ao carregar dados do cliente');
@@ -73,60 +80,6 @@ export default function ClientDetails() {
     fetchData();
   }, [id]);
 
-  // Carrega suplementos atribuídos e catálogo quando a página abre
-  useEffect(() => {
-    if (!id) return;
-    const fetchSupplements = async () => {
-      setSuppLoading(true);
-      try {
-        const [assignedData, catalogueData] = await Promise.all([
-          getClientSupplements(id),
-          getSupplements(false), // apenas activos
-        ]);
-        setAssignments(assignedData);
-        setCatalogue(catalogueData);
-      } catch {
-        // silencioso — o componente mostra "sem suplementos"
-      } finally {
-        setSuppLoading(false);
-      }
-    };
-    fetchSupplements();
-  }, [id]);
-
-  // Atribui o suplemento seleccionado ao cliente
-  const handleAssign = async () => {
-    if (!selectedSuppId) return;
-    setAssigning(true);
-    try {
-      await assignSupplement(id, { supplement_id: selectedSuppId });
-      toast.success('Suplemento atribuído.');
-      setSelectedSuppId('');
-      // Recarrega a lista de atribuídos
-      const updated = await getClientSupplements(id);
-      setAssignments(updated);
-    } catch {
-      toast.error('Erro ao atribuir suplemento. Pode já estar atribuído.');
-    } finally {
-      setAssigning(false);
-    }
-  };
-
-  // Remove uma atribuição existente
-  const handleRemoveAssignment = async (assignmentId, name) => {
-    try {
-      await removeClientAssignment(id, assignmentId);
-      toast.success(`Suplemento "${name}" removido.`);
-      setAssignments((prev) => prev.filter((a) => a.id !== assignmentId));
-    } catch {
-      toast.error('Erro ao remover suplemento.');
-    }
-  };
-
-  // Estado do link de convite
-  const [inviteLink, setInviteLink] = useState('');
-  const [generatingInvite, setGeneratingInvite] = useState(false);
-
   // Gera um link de convite para o cliente
   const handleGenerateInvite = async () => {
     setGeneratingInvite(true);
@@ -135,7 +88,9 @@ export default function ClientDetails() {
       setInviteLink(data.invite_link);
       // Copia o link para a área de transferência
       await navigator.clipboard.writeText(data.invite_link);
-      toast.success(`Link de convite copiado para a área de transferência! Válido por ${data.expires_in_days} dias.`);
+      toast.success(
+        `Link de convite copiado para a área de transferência! Válido por ${data.expires_in_days} dias.`
+      );
     } catch {
       toast.error('Erro ao gerar link de convite.');
     } finally {
@@ -150,11 +105,28 @@ export default function ClientDetails() {
     toast.success('Link de convite copiado para a área de transferência!');
   };
 
+  // Abre com Whatsapp com mensagem pré formatada
+  const handleShareWhatsApp = () => {
+    if (!inviteLink) return;
+    const clientName = client ? client.full_name : 'cliente';
+    const message =
+      `Olá ${clientName}! O teu Personal Trainer convidou-te para acederes à plataforma de treino.\n\n` +
+      `Clica no link abaixo para definires a tua password e acederes ao teu plano:\n` +
+      `${inviteLink}\n\n` +
+      `O link é válido por 7 dias e só pode ser usado uma vez.`;
+    window.open(
+      `https://wa.me/?text=${encodeURIComponent(message)}`,
+      '_blank',
+      'noopener,noreferrer'
+    );
+  };
 
-  // Suplementos do catálogo que ainda não foram atribuídos — evita duplicados no select
-  const unassignedSupplements = catalogue.filter(
-    (s) => !assignments.some((a) => a.supplement_id === s.id)
-  );
+  // Derivados
+  // Progresso do pack ativo, para a barra de progresso
+  const packProgress = client?.active_pack
+    ? (client.active_pack.sessions_used / client.active_pack.sessions_total) *
+      100
+    : 0;
 
   if (loading) {
     return (
@@ -178,32 +150,28 @@ export default function ClientDetails() {
     );
   }
 
-  //calcula progresso do pack
-  const packProgress = client.active_pack
-    ? (client.active_pack.sessions_used / client.active_pack.sessions_total) *
-      100
-    : 0;
-
   return (
     <div className="p-4 lg:p-6 flex flex-col gap-6">
-      {/*Botão voltar */}
+      {/* Botão de regresso à lista de clientes */}
       <Button
         variant="ghost"
-        onClick={() => navigate('/clients')}
+        onClick={() => navigate('/trainer/clientes')}
         className="w-fit text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="h-4 w-4 mr-2" /> Voltar aos Clientes
       </Button>
 
-      {/* Header com info dos clientes */}
+      {/* Cabeçalho - identidade do cliente (sempre visível, fora das tabs) */}
       <Card className="bg-card border-border">
         <CardContent className="p-6">
           <div className="flex flex-col sm:flex-row items-start gap-4">
+            {/* Avatar com iniciais */}
             <Avatar className="h-16 w-16">
               <AvatarFallback className="bg-primary/10 text-primary text-xl font-semibold">
                 {getInitials(client.full_name)}
               </AvatarFallback>
             </Avatar>
+
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-2">
                 <h1 className="text-xl font-semibold text-foreground">
@@ -216,6 +184,8 @@ export default function ClientDetails() {
                   {getStatusLabel(client.status)}
                 </Badge>
               </div>
+
+              {/* Grid de informação resumida no cabeçalho */}
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 text-sm text-muted-foreground">
                 {client.phone && (
                   <span className="flex items-center gap-2">
@@ -229,14 +199,14 @@ export default function ClientDetails() {
                 )}
                 {client.birth_date && (
                   <span className="flex items-center gap-2">
-                    <Calendar className="h-3.5 w-3.5" />{' '}
+                    <Calendar className="h-3.5 w-3.5" />
                     {calculateAge(client.birth_date)} anos (
                     {formatDate(client.birth_date)})
                   </span>
                 )}
                 {client.sex && (
                   <span className="flex items-center gap-2">
-                    <Target className="h-3.5 w-3.5" /> {getSexLabel(client.sex)}
+                    <User className="h-3.5 w-3.5" /> {getSexLabel(client.sex)}
                   </span>
                 )}
                 {client.height_cm && (
@@ -244,9 +214,11 @@ export default function ClientDetails() {
                     <Ruler className="h-3.5 w-3.5" /> {client.height_cm} cm
                   </span>
                 )}
-                {client.objective && (
+                {client.training_modality && (
                   <span className="flex items-center gap-2">
-                    <Target className="h-3.5 w-3.5" /> {client.objective}
+                    <Dumbbell className="h-3.5 w-3.5" />
+                    {client.training_modality.charAt(0).toUpperCase() +
+                      client.training_modality.slice(1)}
                   </span>
                 )}
               </div>
@@ -255,215 +227,291 @@ export default function ClientDetails() {
         </CardContent>
       </Card>
 
-      {/* Pack ativo */}
-      <Card className="bg-card border-border">
-        <CardContent className="p-6">
-          <h2 className="text-sm font-medium text-foreground mb-4">
-            Pack Ativo
-          </h2>
-          {client.active_pack ? (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-foreground">
-                  {client.active_pack.pack_type_name}
-                </span>
-                <span className="text-sm text-muted-foreground">
-                  {client.active_pack.sessions_used} /{' '}
-                  {client.active_pack.sessions_total} sessões usadas
-                </span>
+      {/* Sistema de Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="w-full sm:w-auto">
+          <TabsTrigger value="perfil" className="flex items-center gap-1.5">
+            <User className="h-3.5 w-3.5" />
+            Perfil
+          </TabsTrigger>
+
+          <TabsTrigger value="acesso" className="flex items-center gap-1.5">
+            <KeyRound className="h-3.5 w-3.5" />
+            Acesso
+          </TabsTrigger>
+
+          <TabsTrigger value="sessoes" className="flex items-center gap-1.5">
+            <Calendar className="h-3.5 w-3.5" />
+            Sessões
+            {sessions.length > 0 && (
+              <span className="ml-1 bg-primary/10 text-primary text-xs rounded-full px-1.5 py-0.5 leading-none">
+                {sessions.length}
+              </span>
+            )}
+          </TabsTrigger>
+        </TabsList>
+
+        {/* TAB: PERFIL */}
+        <TabsContent value="perfil" className="mt-4 space-y-4">
+          {/* Informação detalhada do perfil */}
+          <Card className="bg-card border-border">
+            <CardContent className="p-6 space-y-4">
+              <h2 className="text-sm font-medium text-foreground">
+                Informação Pessoal
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                {client.objetive && (
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-0.5">
+                      Objectivo
+                    </p>
+                    <p className="text-foreground">{client.objetive}</p>
+                  </div>
+                )}
+                {client.notes && (
+                  <div className="sm:col-span-2">
+                    <p className="text-xs text-muted-foreground mb-0.5">
+                      Notas
+                    </p>
+                    <p className="text-foreground whitespace-pre-wrap">
+                      {client.notes}
+                    </p>
+                  </div>
+                )}
+                {client.emergency_contact_name && (
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-0.5">
+                      Contacto de Emergência
+                    </p>
+                    <p className="text-foreground">
+                      {client.emergency_contact_name}
+                    </p>
+                  </div>
+                )}
+                {client.emergency_contact_phone && (
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-0.5">
+                      Telefone de Emergência
+                    </p>
+                    <p className="text-foreground">
+                      {client.emergency_contact_phone}
+                    </p>
+                  </div>
+                )}
+                {client.next_assessment_date && (
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-0.5">
+                      Próxima Avaliação
+                    </p>
+                    <p className="text-foreground">
+                      {formatDate(client.next_assessment_date)}
+                    </p>
+                  </div>
+                )}
+                {/* Fallback quando não há campos adicionais preenchidos */}
+                {!client.objetive &&
+                  !client.notes &&
+                  !client.emergency_contact_name &&
+                  !client.next_assessment_date && (
+                    <p className="text-sm text-muted-foreground sm:col-span-2">
+                      Sem informação adicional registada.
+                    </p>
+                  )}
               </div>
-              <Progress value={packProgress} className="h-2" />
-              <p className="text-xs text-muted-foreground">
-                {client.active_pack.sessions_remaining} sessões restantes
-              </p>
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">Nenhum pack ativo</p>
-          )}
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
 
-      {/* Link de convite para o cliente */}
-      <Card className="bg-card border-border">
-        <CardContent className="p-6 space-y-4">
-          <div className="flex items-center gap-2">
-            <Link className="h-4 w-4 text-muted-foreground" />
-            <h2 className="text-sm font-medium text-foreground">Acesso do Cliente</h2>
-          </div>
-
-          <p className="text-xs text-muted-foreground">
-            Gera um link de convite para o cliente definir a sua password e aceder à plataforma.
-            O link é válido por 7 dias e só pode ser usado uma vez.
-          </p>
-
-          {/* Se ainda não há link gerado, mostra o botão para gerar */}
-          {!inviteLink ? (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleGenerateInvite}
-              disabled={generatingInvite}
-            >
-              {generatingInvite ?  (
-                <>A gerar...</>
+          {/* Pack ativo — progresso de sessões consumidas */}
+          <Card className="bg-card border-border">
+            <CardContent className="p-6">
+              <h2 className="text-sm font-medium text-foreground mb-4">
+                Pack Ativo
+              </h2>
+              {client.active_pack ? (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-foreground">
+                      {client.active_pack.pack_type_name}
+                    </span>
+                    <span className="text-sm text-muted-foreground">
+                      {client.active_pack.sessions_used} /{' '}
+                      {client.active_pack.sessions_total} sessões usadas
+                    </span>
+                  </div>
+                  <Progress value={packProgress} className="h-2" />
+                  <p className="text-xs text-muted-foreground">
+                    {client.active_pack.sessions_remaining} sessões restantes
+                  </p>
+                </div>
               ) : (
-                <>
-                  <Link className="h-4 w-4 mr-2" />
-                  Gerar Link de Convite
-                </>
+                <p className="text-sm text-muted-foreground">
+                  Nenhum pack ativo.
+                </p>
               )}
-            </Button>
-          ) : (
-            <>
-            {/* Link gerado — mostra o link e botão para copiar */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 p-2 rounded-md bg-muted text-xs font-mono break-all">
-                <span className="flex-1 text-muted-foreground">{inviteLink}</span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="shrink-0 h-7 w-7"
-                  onClick={handleCopyInvite}
-                  title="Copiar link"
-                >
-                  <Copy className="h-3.5 w-3.5" />
-                </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* TAB: ACESSO */}
+
+        <TabsContent value="acesso" className="mt-4">
+          <Card className="bg-card border-border">
+            <CardContent className="p-6 space-y-6">
+              {/* Email de login do cliente */}
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Email de Acesso
+                </p>
+                <div className="flex items-center gap-2 p-3 rounded-md bg-muted">
+                  <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <span className="text-sm text-foreground font-mono">
+                    {client.email || 'Sem email registado'}
+                  </span>
+                </div>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleGenerateInvite}
-                disabled={generatingInvite}
-              >
-                Gerar Novo Link
-              </Button>
-            </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
 
-      {/* Painel de suplementos atribuídos */}
-      <Card className="bg-card border-border">
-        <CardContent className="p-6 space-y-4">
-          <div className="flex items-center gap-2">
-            <Pill className="h-4 w-4 text-muted-foreground" />
-            <h2 className="text-sm font-medium text-foreground">
-              Suplementação ({assignments.length})
-            </h2>
-          </div>
+              <div className="border-t border-border" />
 
-          {/* Select + botão para atribuir novo suplemento */}
-          {unassignedSupplements.length > 0 && (
-            <div className="flex gap-2">
-              <select
-                className="flex-1 h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-                value={selectedSuppId}
-                onChange={(e) => setSelectedSuppId(e.target.value)}
-              >
-                <option value="">Selecciona um suplemento...</option>
-                {unassignedSupplements.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
-              <Button
-                size="sm"
-                onClick={handleAssign}
-                disabled={!selectedSuppId || assigning}
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                {assigning ? 'A atribuir...' : 'Atribuir'}
-              </Button>
-            </div>
-          )}
+              {/* Secção do link de convite */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <KeyRound className="h-4 w-4 text-muted-foreground" />
+                  <h3 className="text-sm font-medium text-foreground">
+                    Link de Primeiro Acesso
+                  </h3>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Gera um link de convite para o cliente definir a sua password
+                  e aceder à plataforma. O link é válido por{' '}
+                  <strong>7 dias</strong> e só pode ser usado{' '}
+                  <strong>uma vez</strong>. Ao gerar um novo link, o anterior é
+                  invalidado.
+                </p>
 
-          {/* Lista de suplementos atribuídos */}
-          {suppLoading ? (
-            <p className="text-sm text-muted-foreground">A carregar...</p>
-          ) : assignments.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Nenhum suplemento atribuído a este cliente.
-            </p>
-          ) : (
-            <div className="space-y-2">
-              {assignments.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex items-center justify-between py-2 border-b border-border last:border-0"
-                >
-                  <div>
-                    <p className="text-sm font-medium text-foreground">
-                      {item.supplement_name}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {/* Mostra dose específica do cliente, ou a do catálogo como fallback */}
-                      {item.dose || item.supplement_serving_size
-                        ? `Dose: ${item.dose || item.supplement_serving_size}`
-                        : ''}
-                      {item.timing_notes || item.supplement_timing
-                        ? ` · ${item.timing_notes || item.supplement_timing}`
-                        : ''}
-                    </p>
-                  </div>
+                {/* Estado: sem link gerado, mostra botão de geração */}
+                {!inviteLink ? (
                   <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                    onClick={() =>
-                      handleRemoveAssignment(item.id, item.supplement_name)
-                    }
-                    title="Remover suplemento"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Histórico de sessões */}
-      <Card className="bg-card border-border">
-        <CardContent className="p-6">
-          <h2 className="text-sm font-medium text-foreground mb-4">
-            Últimas Sessões ({sessions.length})
-          </h2>
-          {sessions.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Nenhuma sessão encontrada.
-            </p>
-          ) : (
-            <div className="space-y-2">
-              {sessions.slice(0, 10).map((session) => (
-                <div
-                  key={session_id}
-                  className="flex items-center justify-between py-2 border-b border-border last:border-0"
-                >
-                  <div>
-                    <p className="text-sm text-foreground">
-                      {formatDate(session.starts_at)}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {' '}
-                      {session.duration_minutes}min{' '}
-                      {session.location && `- ${session.location}`}
-                    </p>
-                  </div>
-                  <Badge
                     variant="outline"
-                    className={`text-xs ${getStatusColor(session.status)}`}
+                    onClick={handleGenerateInvite}
+                    disabled={generatingInvite}
+                    className="w-full sm:w-auto"
                   >
-                    {getStatusLabel(session.status)}
-                  </Badge>
+                    {generatingInvite ? (
+                      'A gerar...'
+                    ) : (
+                      <>
+                        <Link className="h-4 w-4 mr-2" />
+                        Gerar Link de Convite
+                      </>
+                    )}
+                  </Button>
+                ) : (
+                  // Estado: link gerado,  mostra o link e as acções
+                  <div className="space-y-3">
+                    {/* Caixa de exibição do link */}
+                    <div className="flex items-center gap-2 p-3 rounded-md bg-muted border border-border">
+                      <span className="flex-1 text-xs font-mono text-muted-foreground break-all">
+                        {inviteLink}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="shrink-0 h-7 w-7"
+                        onClick={handleCopyInvite}
+                        title="Copiar link"
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+
+                    {/* Acções disponíveis após geração */}
+                    <div className="flex flex-wrap gap-2">
+                      {/*
+                        Botão WhatsApp:
+                        Cor oficial #25D366 (verde WhatsApp).
+                        wa.me/?text= abre o WhatsApp com a mensagem pré-escrita.
+                        noopener,noreferrer: segurança — a nova tab não tem acesso
+                        ao objecto window da tab pai.
+                      */}
+                      <Button
+                        onClick={handleShareWhatsApp}
+                        size="sm"
+                        className="bg-[#25D366] hover:bg-[#1ebe5d] text-white border-0"
+                      >
+                        <MessageCircle className="h-4 w-4 mr-2" />
+                        Partilhar via WhatsApp
+                      </Button>
+
+                      {/* Cópia manual — para outros canais (SMS, email, etc.) */}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleCopyInvite}
+                      >
+                        <Copy className="h-4 w-4 mr-2" />
+                        Copiar Link
+                      </Button>
+
+                      {/* Regenerar invalida o token anterior no backend */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleGenerateInvite}
+                        disabled={generatingInvite}
+                        className="text-muted-foreground"
+                      >
+                        {generatingInvite ? 'A gerar...' : 'Gerar Novo Link'}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* TAB: SESSÕES */}
+        <TabsContent value="sessoes" className="mt-4">
+          <Card className="bg-card border-border">
+            <CardContent className="p-6">
+              <h2 className="text-sm font-medium text-foreground mb-4">
+                Últimas Sessões ({sessions.length})
+              </h2>
+              {sessions.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Nenhuma sessão encontrada.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {/* slice(0, 10) — limita a lista a 10 entradas recentes */}
+                  {sessions.slice(0, 10).map((session) => (
+                    <div
+                      key={session.id}
+                      className="flex items-center justify-between py-2 border-b border-border last:border-0"
+                    >
+                      <div>
+                        <p className="text-sm text-foreground">
+                          {formatDate(session.starts_at)}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {session.duration_minutes}min
+                          {session.location && ` · ${session.location}`}
+                        </p>
+                      </div>
+                      <Badge
+                        variant="outline"
+                        className={`text-xs ${getStatusColor(session.status)}`}
+                      >
+                        {getStatusLabel(session.status)}
+                      </Badge>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

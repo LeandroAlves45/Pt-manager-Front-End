@@ -29,6 +29,7 @@ import {
   ClipboardList,
   Pill,
   CreditCard,
+  Salad,
   User,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -40,11 +41,11 @@ import {
   SheetTrigger,
   SheetTitle,
 } from '@/components/ui/sheet';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/context/useAuth';
 
 /**
  *
- * Items de navegação do trainer
+ * Items de navegação do Personal Trainer
  * Cada item tem: label (texto visivel), href (rota), icon (componente do lucide-react)
  */
 
@@ -54,12 +55,13 @@ const navItems = [
   { label: 'Sessões', href: '/trainer/sessoes', icon: CalendarDays },
   { label: 'Packs', href: '/trainer/packs', icon: Package },
   { label: 'Exercícios', href: '/trainer/exercicios', icon: Activity },
-  {
-    label: 'Planos de treino',
-    href: '/trainer/planos-de-treino',
-    icon: Dumbbell,
-  },
+  { label: 'Planos de treino', href: '/trainer/planos', icon: Dumbbell },
   { label: 'Nutrição', href: '/trainer/nutricao', icon: UtensilsCrossed },
+  {
+    label: 'Planos Alimentares',
+    href: '/trainer/planos-alimentares',
+    icon: Salad,
+  },
   { label: 'Avaliações', href: '/trainer/avaliacoes', icon: ClipboardList },
   { label: 'Suplementos', href: '/trainer/suplementos', icon: Pill },
 ];
@@ -70,6 +72,30 @@ const bottomNavItems = [
 ];
 
 /**
+ * Determina se um item de navegação deve ser marcado como ativo.
+ *
+ * Regras (por ordem de precedência):
+ *   1. Rotas com "/calculadora" no path pertencem ao fluxo de Planos Alimentares (P7-01).
+ *   2. Para evitar que "/trainer/planos" faça match em "/trainer/planos-alimentares",
+ *      exige-se que o próximo caracter após o href seja "/" ou fim do string.
+ *      Exemplo:
+ *        href = "/trainer/planos"
+ *        path = "/trainer/planos-alimentares" → pathname.startsWith("/trainer/planos/") = false ✓
+ *        path = "/trainer/planos"             → pathname === href = true ✓
+ *        path = "/trainer/planos/123"         → pathname.startsWith("/trainer/planos/") = true ✓
+ */
+function isItemActive(itemHref, pathname) {
+  // Regra 1: calculadora é parte do fluxo de Planos Alimentares
+  if (pathname.includes('/calculadora')) {
+    return itemHref === '/trainer/planos-alimentares';
+  }
+
+  // Regra 2: match exato OU sub-rota com '/'
+  // Impede que '/trainer/planos' faça match em '/trainer/planos-alimentares'
+  return pathname === itemHref || pathname.startsWith(itemHref + '/');
+}
+
+/**
  * Conteúdo partilhado entre a sidebar desktop e o Sheet mobile.
  * Recebe onNavigate para fechar o Sheet ao clicar num link (apenas mobile).
  */
@@ -78,7 +104,7 @@ function NavContent({ onNavigate }) {
   const location = useLocation();
   const { user, trainerSettings, logout } = useAuth();
 
-  // Gera as iniciais do nome do trainer para o avatar fallback (ex: "João Silva" → "JS")
+  // Gera as iniciais do nome do Personal Trainer para o avatar fallback (ex: "João Silva" → "JS")
   function getInitials(name = '') {
     return name
       .split(' ')
@@ -88,54 +114,61 @@ function NavContent({ onNavigate }) {
       .toUpperCase();
   }
 
-  // Nome da app: usa o nome personalizado do trainer se existir, senão um nome genérico "PT Manager"
+  // Logo do Personal Trainer (white-label)
+  const logoUrl = trainerSettings?.logo_url;
+  // Nome da app: usa o nome personalizado do Personal Trainer se existir, senão um nome genérico "PT Manager"
   const appName = trainerSettings?.app_name ?? 'PT Manager';
 
   return (
     <div className="flex h-full flex-col">
       {/* Cabeçalho com o logo */}
-      <div className="flex items-center justify-center px-4 py-6 border-b border-border">
-        {trainerSettings?.logo_url ? (
-          <img
-            src={trainerSettings.logo_url}
-            alt={appName}
-            className="h-16 w-auto object-contain max-w-45"
-          />
-        ) : (
-          // Fallback: ícone + nome da app
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center">
-              <Dumbbell className="h-5 w-5 text-primary" />
-            </div>
-            <span className="font-bold text-base text-foreground">
+      <div className="flex flex-col items-center justify-center px-4 py-5 border-b border-border gap-2">
+        {logoUrl ? (
+          <>
+            {/*
+              Logo + nome abaixo.
+              O logo tem altura máxima para não ocupar demasiado espaço vertical.
+              O nome aparece sempre por baixo para o Personal Trainer saber qual é a "sua" app.
+            */}
+            <img
+              src={logoUrl}
+              alt={appName}
+              className="max-h-full max-w-full rounded-lg object-cover"
+            />
+            <span className="text-xl font-bold text-foreground tracking-wide text-center">
               {appName}
             </span>
-          </div>
+          </>
+        ) : (
+          /* Fallback sem logo: ícone em cima, nome em baixo */
+          <>
+            <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+              <Dumbbell className="h-7 w-7 text-primary" />
+            </div>
+            <span className="font-bold text-base text-foreground text-center">
+              {appName}
+            </span>
+          </>
         )}
       </div>
 
-      {/*Lista de links de navegação */}
+      {/* ── Navegação principal ── */}
       <nav className="flex-1 px-3 py-4 overflow-y-auto">
         <ul className="flex flex-col gap-1">
           {navItems.map((item) => {
-            // isActive: destaca o item correspondente à rota actual
-            const isActive = location.pathname.startsWith(item.href);
-
+            const isActive = isItemActive(item.href, location.pathname);
             return (
               <li key={item.href}>
                 <Link
                   to={item.href}
                   onClick={onNavigate}
                   className={cn(
-                    //Classes base: layout do item, padding, bordas, arrednoamento, fonte
                     'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
-                    //Classes condicionais: ativo vs inativo
                     isActive
-                      ? 'bg-primary/10 text-primary' // ativo: fundo azul subtil + texto azul
-                      : 'text-muted-foreground hover:bg-accent hover:text-foreground' //inativo: cinza, hover muda
+                      ? 'bg-primary/10 text-primary'
+                      : 'text-muted-foreground hover:bg-accent hover:text-foreground'
                   )}
                 >
-                  {/* Ícone do item, shrink-0 impede que encolha */}
                   <item.icon className="h-5 w-5 shrink-0" />
                   <span>{item.label}</span>
                 </Link>
@@ -144,12 +177,11 @@ function NavContent({ onNavigate }) {
           })}
         </ul>
 
-        {/* Separador visual antes dos itens secundários */}
         <div className="my-3 border-t border-border" />
 
         <ul className="flex flex-col gap-1">
           {bottomNavItems.map((item) => {
-            const isActive = location.pathname.startsWith(item.href);
+            const isActive = isItemActive(item.href, location.pathname);
             return (
               <li key={item.href}>
                 <Link
@@ -171,16 +203,14 @@ function NavContent({ onNavigate }) {
         </ul>
       </nav>
 
-      {/* Rodapé: Avatar + nome + Logout */}
-      <div className="border-t border-border px3 py-4">
+      {/* ── Rodapé: avatar + nome + logout ── */}
+      <div className="border-t border-border px-3 py-4">
         <div className="flex items-center gap-3">
           <Avatar className="h-8 w-8 shrink-0">
             <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
               {getInitials(user?.full_name)}
             </AvatarFallback>
           </Avatar>
-
-          {/* Nome e email do trainer */}
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-foreground truncate">
               {user?.full_name}
@@ -189,8 +219,6 @@ function NavContent({ onNavigate }) {
               {user?.email}
             </p>
           </div>
-
-          {/* Botão de Logout */}
           <Button
             variant="ghost"
             size="icon"
@@ -219,40 +247,33 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* ===== SIDEBAR DESKTOP ===== */}
+      {/* ── Sidebar desktop ── */}
       <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 lg:z-50 border-r border-border bg-sidebar">
         <NavContent />
       </aside>
 
-      {/* ===== HEADER MOBILE (com hamburger) ===== */}
+      {/* ── Header mobile com hamburger ── */}
       <header className="sticky top-0 z-40 flex items-center justify-between bg-background border-b border-border px-4 py-3 lg:hidden">
         <Sheet open={open} onOpenChange={setOpen}>
-          {/* Botão hamburger para abrir o menu */}
           <SheetTrigger asChild>
             <Button variant="ghost" size="icon" className="text-foreground">
               <Menu className="h-5 w-5" />
               <span className="sr-only">Abrir menu</span>
             </Button>
           </SheetTrigger>
-
-          {/* Painel lateral que desliza da esquerda */}
           <SheetContent
             side="left"
             className="w-64 p-0 bg-sidebar border-border"
           >
             <SheetTitle className="sr-only">Menu de Navegação</SheetTitle>
-            {/* Ao clicar num link, fecha o sheet */}
             <NavContent onNavigate={() => setOpen(false)} />
           </SheetContent>
         </Sheet>
 
-        {/* Logo no header mobile */}
         <div className="flex items-center gap-2">
           <Dumbbell className="h-5 w-5 text-primary" />
           <span className="font-semibold text-foreground">{appName}</span>
         </div>
-
-        {/* Espaço vazio para centrar o nome (equilibra o botão hamburger) */}
         <div className="w-9" />
       </header>
     </>

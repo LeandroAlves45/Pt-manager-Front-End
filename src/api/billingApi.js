@@ -1,14 +1,14 @@
 /**
  * billingApi.js — chamadas à API de billing e subscrição.
  *
- * Todos os endpoints requerem autenticação JWT de trainer.
+ * Todos os endpoints requerem autenticação JWT de Personal Trainer.
  * O Bearer token é injectado automaticamente pelo interceptor do axiosConfig.
  */
 
 import api from './axiosConfig';
 
 /**
- * Devolve o estado actual da subscrição do trainer autenticado.
+ * Devolve o estado actual da subscrição do Personal Trainer autenticado.
  *
  * @returns {Promise<{
  *   status: string,         — trialing | active | past_due | cancelled | trial_expired
@@ -30,7 +30,7 @@ export const getSubscription = async () => {
 };
 
 /**
- * Gera uma URL do Stripe Checkout para o trainer adicionar método de pagamento.
+ * Gera uma URL do Stripe Checkout para o Personal Trainer adicionar método de pagamento.
  * Redireciona o utilizador para a página Stripe hospedada.
  *
  * @returns {Promise<{ checkout_url: string }>}
@@ -41,7 +41,7 @@ export const createCheckout = async () => {
 };
 
 /**
- * Gera uma URL do Stripe Billing Portal para o trainer gerir a subscrição.
+ * Gera uma URL do Stripe Billing Portal para o Personal Trainer gerir a subscrição.
  * Permite cancelar, fazer upgrade/downgrade, e ver histórico de faturas.
  *
  * @returns {Promise<{ portal_url: string }>}

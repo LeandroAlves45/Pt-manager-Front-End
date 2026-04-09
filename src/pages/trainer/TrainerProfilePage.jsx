@@ -1,21 +1,22 @@
 /**
- * TrainerProfilePage.jsx — perfil e branding do trainer.
+ * TrainerProfilePage.jsx — perfil e branding do Personal Trainer.
  *
  * Funcionalidades:
  *   - Upload de logo (Cloudinary via backend)
  *   - Picker de cor primária com preview em tempo real
  *   - Nome da app personalizado
  *
- * Quando o trainer guarda a cor, é aplicada imediatamente via CSS variables
+ * Quando o Personal Trainer guarda a cor, é aplicada imediatamente via CSS variables
  * usando fetchTrainerSettings() do AuthContext — sem reload necessário.
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { hexColorRules } from '@/utils/validators';
 import { toast } from 'react-toastify';
 import { Upload, Trash2, Loader2, Palette } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/useAuth';
+import { hexToHSL } from '../../utils/formatters';
 import api from '../../api/axiosConfig';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -30,7 +31,8 @@ import {
 import { Separator } from '@/components/ui/separator';
 
 export default function TrainerProfilePage() {
-  const { user, trainerSettings, fetchTrainerSettings } = useAuth();
+  const { user, trainerSettings, fetchTrainerSettings, applyBrandColor } =
+    useAuth();
   const [uploadLoading, setUploadLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [settingsLoading, setSettingsLoading] = useState(false);
@@ -38,7 +40,64 @@ export default function TrainerProfilePage() {
   const [colorPreview, setColorPreview] = useState(
     trainerSettings?.primary_color ?? '#00A8E8'
   );
+  // Preview da cor do body (background geral da app)
+  // Default: cor escura neutra (#0A0A14) — o valor actual do CSS --background
+  const [bodyColorPreview, setBodyColorPreview] = useState(
+    trainerSettings?.body_color ?? '#0A0A14'
+  );
   const fileInputRef = useRef(null);
+
+  /*
+   * Debounce de 300ms para o live preview de cor.
+   *
+   * Razão: applyBrandColor altera CSS variables em todo o DOM — é uma operação
+   * de pintura que, se chamada em cada keystroke, causa jank visual.
+   * Com debounce de 300ms, a cor actualiza-se enquanto o Personal Trainer arrasta o picker
+   * ou escreve o hex, mas só após 300ms de pausa — imperceptível para o utilizador.
+   *
+   * useRef guarda o timer entre renders sem causar re-render quando muda.
+   * useCallback estabiliza a função para não ser recriada em cada render.
+   */
+  const debounceTimerRef = useRef(null);
+  const bodyColorDebounceRef = useRef(null);
+
+  // Debounce para a cor primária — aplica via applyBrandColor (CSS variables)
+  const handleColorChange = useCallback(
+    (hexValue) => {
+      setColorPreview(hexValue);
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = setTimeout(() => {
+        if (/^#[0-9A-Fa-f]{6}$/.test(hexValue)) {
+          applyBrandColor(hexValue);
+        }
+      }, 300);
+    },
+    [applyBrandColor]
+  );
+
+  // Debounce para a cor do body — altera directamente --background e --card
+  // sem tocar na cor primária da sidebar.
+  // hexToHex → HSL: convertemos para o formato que o Tailwind CSS v4 espera.
+  const handleBodyColorChange = useCallback((hexValue) => {
+    setBodyColorPreview(hexValue);
+    if (bodyColorDebounceRef.current)
+      clearTimeout(bodyColorDebounceRef.current);
+    bodyColorDebounceRef.current = setTimeout(() => {
+      if (/^#[0-9A-Fa-f]{6}$/.test(hexValue)) {
+        // Converte hex para HSL (formato "H S% L%" sem hsl())
+        const hsl = hexToHSL(hexValue);
+        // --background: background geral da página
+        document.documentElement.style.setProperty('--background', hsl);
+        // --card: cards ligeiramente mais claros que o background
+        // Aumentamos a lightness em ~4% para manter a hierarquia visual
+        const parts = hsl.split(' ');
+        const lightness = parseFloat(parts[2]) + 4;
+        const cardHsl = `${parts[0]} ${parts[1]} ${Math.min(lightness, 95)}%`;
+        document.documentElement.style.setProperty('--card', cardHsl);
+        document.documentElement.style.setProperty('--popover', cardHsl);
+      }
+    }, 300);
+  }, []);
 
   const {
     register,
@@ -48,6 +107,7 @@ export default function TrainerProfilePage() {
   } = useForm({
     defaultValues: {
       primary_color: trainerSettings?.primary_color ?? '#00A8E8',
+      body_color: trainerSettings?.body_color ?? '#0A0A14',
       app_name: trainerSettings?.app_name ?? 'PT Manager',
     },
   });
@@ -57,9 +117,11 @@ export default function TrainerProfilePage() {
     if (trainerSettings) {
       reset({
         primary_color: trainerSettings.primary_color ?? '#00A8E8',
+        body_color: trainerSettings.body_color ?? '#0A0A14',
         app_name: trainerSettings.app_name ?? 'PT Manager',
       });
       setColorPreview(trainerSettings.primary_color ?? '#00A8E8');
+      setBodyColorPreview(trainerSettings.body_color ?? '#0A0A14');
     }
   }, [trainerSettings, reset]);
 
@@ -116,10 +178,11 @@ export default function TrainerProfilePage() {
     try {
       await api.patch('/api/v1/trainer-profile/settings', {
         primary_color: data.primary_color,
+        body_color: data.body_color || null,
         app_name: data.app_name,
       });
       toast.success('Configurações guardadas com sucesso!');
-      // Recarrega as settings para actualizar o tema e outros componentes
+      // Recarrega as settings para atualizar o tema e outros componentes
       await fetchTrainerSettings();
     } catch (error) {
       toast.error(
@@ -201,7 +264,7 @@ export default function TrainerProfilePage() {
               >
                 {uploadLoading ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> A
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />A
                     carregar...
                   </>
                 ) : (
@@ -221,7 +284,7 @@ export default function TrainerProfilePage() {
                 >
                   {deleteLoading ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> A
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />A
                       remover...
                     </>
                   ) : (
@@ -261,7 +324,7 @@ export default function TrainerProfilePage() {
                 <Input
                   type="color"
                   value={colorPreview}
-                  onChange={(e) => setColorPreview(e.target.value)}
+                  onChange={(e) => handleColorChange(e.target.value)}
                   className="h-10 w-14 rounded-md border border-border cursor-pointer bg-transparent p-1"
                 />
                 {/* Input de texto para valor hex manual */}
@@ -272,7 +335,7 @@ export default function TrainerProfilePage() {
                   className="font-mono uppercase max-w-32"
                   {...register('primary_color', {
                     ...hexColorRules,
-                    onChange: (e) => setColorPreview(e.target.value),
+                    onChange: (e) => handleColorChange(e.target.value),
                   })}
                 />
                 {/* Amostra de cor em tempo real */}
@@ -284,6 +347,54 @@ export default function TrainerProfilePage() {
               {errors.primary_color && (
                 <p className="text-sm text-destructive">
                   {errors.primary_color.message}
+                </p>
+              )}
+            </div>
+
+            <Separator />
+
+            {/* Cor do body (background geral da app) */}
+            {/*
+              A cor do body altera o background geral da página — independente
+              da cor primária (botões, links, sidebar).
+              Permite ao trainer ter uma sidebar azul com um body cinzento,
+              por exemplo.
+              O default é o tema escuro original (#0A0A14).
+            */}
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="body_color">Cor do fundo (body)</Label>
+              <div className="flex items-center gap-3">
+                <Input
+                  type="color"
+                  value={bodyColorPreview}
+                  onChange={(e) => handleBodyColorChange(e.target.value)}
+                  className="h-10 w-14 rounded-md border border-border cursor-pointer bg-transparent p-1"
+                />
+                <Input
+                  id="body_color"
+                  placeholder="#0A0A14"
+                  value={bodyColorPreview}
+                  className="font-mono uppercase max-w-32"
+                  {...register('body_color', {
+                    pattern: {
+                      value: /^#[0-9A-Fa-f]{6}$/,
+                      message: 'Formato hex inválido (ex: #0A0A14)',
+                    },
+                    onChange: (e) => handleBodyColorChange(e.target.value),
+                  })}
+                />
+                <div
+                  className="h-10 w-10 rounded-md border border-border shrink-0"
+                  style={{ backgroundColor: bodyColorPreview }}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Aplica-se ao fundo geral da app (não afecta a sidebar). Escuro
+                recomendado para melhor contraste.
+              </p>
+              {errors.body_color && (
+                <p className="text-sm text-destructive">
+                  {errors.body_color.message}
                 </p>
               )}
             </div>

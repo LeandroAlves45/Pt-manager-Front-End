@@ -9,10 +9,20 @@ import {
   unarchiveClient,
 } from '../api/clientsApi';
 import { purchasePack } from '../api/packsApi';
+import { generateInvite } from '../api/inviteApi';
+import { createUser } from '../api/authApi';
 import ClientTable from '@/components/clients/ClientTable';
 import ClientFormDialog from '@/components/clients/ClientFormDialog';
 import PackPurchaseDialog from '@/components/packs/PackPurchaseDialog';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import { Copy, MessageCircle, Check } from 'lucide-react';
 
 /**
  * Página de gestão de clientes.
@@ -40,6 +50,11 @@ export default function Clients() {
   //Cliente atualmente selecionado para edição (null para criação)
   const [selectedClient, setSelectedClient] = useState(null);
 
+  // Dialog de credenciais de convite
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const [inviteData, setInviteData] = useState(null); // { clientName, email, password, inviteLink, expiresInDays }
+  const [copied, setCopied] = useState(false);
+
   // --- HANDLERS DE AÇÕES ---
 
   //Abrir dialog para criar novo cliente
@@ -56,7 +71,7 @@ export default function Clients() {
 
   //Navega para a página de detalhes do cliente
   const handleViewClient = (client) => {
-    navigate(`/clientes/${client.id}`); //Redireciona para detalhes
+    navigate(`/trainer/clientes/${client.id}`); //Redireciona para detalhes
   };
 
   //Submete o formulário de criação/edição
@@ -67,8 +82,53 @@ export default function Clients() {
         await updateClient(selectedClient.id, data);
         toast.success('Cliente atualizado com sucesso!');
       } else {
-        //Criação
-        await createClient(data);
+        //Criação: 1) cria o perfil do cliente, 2) cria a conta de utilizador
+        const newClient = await createClient(data);
+
+        // Cria a conta de utilizador associada ao cliente
+        // Password temporária — será substituída quando o cliente usar o link de convite
+        if (data.email) {
+          try {
+            const tempPassword = Math.floor(
+              10000000 + Math.random() * 90000000
+            ).toString();
+            await createUser({
+              email: data.email,
+              password: tempPassword,
+              full_name: data.full_name,
+              role: 'client',
+              client_id: newClient.id,
+            });
+
+            // Gera o convite e abre o dialog com as credenciais
+            try {
+              const inviteResponse = await generateInvite(newClient.id);
+              setInviteData({
+                clientName: data.full_name,
+                email: data.email,
+                password: tempPassword,
+                inviteLink: inviteResponse.invite_link,
+                expiresInDays: inviteResponse.expires_in_days,
+              });
+              setCopied(false);
+              setInviteDialogOpen(true);
+            } catch {
+              // Se falhar a gerar o convite, mostra as credenciais sem link
+              setInviteData({
+                clientName: data.full_name,
+                email: data.email,
+                password: tempPassword,
+                inviteLink: '(gera o link na tabela de clientes)',
+                expiresInDays: 7,
+              });
+              setCopied(false);
+              setInviteDialogOpen(true);
+            }
+          } catch {
+            // Conta pode já existir — não bloqueia a criação do cliente
+          }
+        }
+
         toast.success('Cliente criado com sucesso!');
       }
       setFormOpen(false); //Fecha form
@@ -97,6 +157,103 @@ export default function Clients() {
           'Ocorreu um erro ao atualizar o status do cliente.'
       );
     }
+  };
+
+  // Gera link de convite e abre o dialog com as credenciais
+  // Se o cliente não tiver conta, cria-a automaticamente e re-tenta
+  const handleGenerateInvite = async (client) => {
+    const openInviteDialog = (data, tempPassword = null) => {
+      setInviteData({
+        clientName: client.full_name,
+        email: client.email,
+        password: tempPassword,
+        inviteLink: data.invite_link,
+        expiresInDays: data.expires_in_days,
+      });
+      setCopied(false);
+      setInviteDialogOpen(true);
+    };
+
+    try {
+      const data = await generateInvite(client.id);
+      openInviteDialog(data);
+    } catch (error) {
+      const detail = error.response?.data?.detail || '';
+
+      // Cliente sem conta de utilizador — cria automaticamente e re-tenta
+      if (error.response?.status === 404 && detail.includes('conta')) {
+        if (!client.email) {
+          toast.error(
+            'Este cliente não tem email. Edita o cliente e adiciona um email primeiro.'
+          );
+          return;
+        }
+        try {
+          const tempPassword = Math.floor(
+            10000000 + Math.random() * 90000000
+          ).toString();
+          await createUser({
+            email: client.email,
+            password: tempPassword,
+            full_name: client.full_name,
+            role: 'client',
+            client_id: client.id,
+          });
+
+          // Re-tenta gerar o convite
+          const data = await generateInvite(client.id);
+          openInviteDialog(data, tempPassword);
+        } catch (retryError) {
+          toast.error(
+            retryError.response?.data?.detail ||
+              'Erro ao criar conta e gerar convite.'
+          );
+        }
+      } else {
+        toast.error(detail || 'Erro ao gerar link de convite.');
+      }
+    }
+  };
+
+  // Monta a mensagem formatada com as credenciais
+  const buildInviteMessage = () => {
+    if (!inviteData) return '';
+    let message =
+      `Olá ${inviteData.clientName}! 🏋️\n\n` +
+      `O teu Personal Trainer convidou-te para acederes à plataforma de treino.\n\n` +
+      `Usa estas informações para fazer login:\n` +
+      `📧 Login: ${inviteData.email}\n`;
+    if (inviteData.password) {
+      message += `🔒 Senha: ${inviteData.password}\n`;
+    }
+    message += `🔗 Link de acesso: ${inviteData.inviteLink}\n\n`;
+    if (inviteData.password) {
+      message += `Após o primeiro login, altera a tua password nas definições.`;
+    } else {
+      message += `Clica no link para definires a tua password e acederes ao teu plano.`;
+    }
+    return message;
+  };
+
+  // Copia a mensagem formatada com as credenciais
+  const handleCopyCredentials = async () => {
+    const message = buildInviteMessage();
+    if (!message) return;
+    await navigator.clipboard.writeText(message);
+    setCopied(true);
+    toast.success('Credenciais copiadas!');
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  // Partilha as credenciais via WhatsApp
+  const handleShareWhatsApp = () => {
+    const message = buildInviteMessage();
+    if (!message) return;
+    window.open(
+      `https://wa.me/?text=${encodeURIComponent(message)}`,
+      '_blank',
+      'noopener,noreferrer'
+    );
   };
 
   // agendar sessão
@@ -184,6 +341,7 @@ export default function Clients() {
           onViewClient={handleViewClient}
           onScheduleSession={handleScheduleSession}
           onPurchasePack={handlePurchasePack}
+          onGenerateInvite={handleGenerateInvite}
           onArchiveClient={handleToggleArchive}
         />
       )}
@@ -203,6 +361,86 @@ export default function Clients() {
         client={selectedClient}
         onPurchase={handlePackPurchase}
       />
+
+      {/* DIALOG DE CREDENCIAIS DE CONVITE */}
+      <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
+        <DialogContent className="sm:max-w-md bg-card border-border text-foreground">
+          <DialogHeader>
+            <DialogTitle>Convite Gerado</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Envia estas credenciais ao cliente para ele aceder à plataforma.
+            </DialogDescription>
+          </DialogHeader>
+
+          {inviteData && (
+            <div className="space-y-4 pt-2">
+              {/* Card com as credenciais */}
+              <div className="rounded-lg border border-border bg-muted p-4 space-y-2.5 font-mono text-sm">
+                <p className="text-foreground font-sans font-medium text-base">
+                  Dados de acesso para {inviteData.clientName}
+                </p>
+                <div className="border-t border-border pt-2.5 space-y-1.5">
+                  <p className="text-muted-foreground">
+                    <span className="font-sans font-medium text-foreground">
+                      📧 Login:
+                    </span>{' '}
+                    {inviteData.email}
+                  </p>
+                  {inviteData.password && (
+                    <p className="text-muted-foreground">
+                      <span className="font-sans font-medium text-foreground">
+                        🔒 Senha temporária:
+                      </span>{' '}
+                      {inviteData.password}
+                    </p>
+                  )}
+                  <p className="text-muted-foreground break-all">
+                    <span className="font-sans font-medium text-foreground">
+                      🔗 Link:
+                    </span>{' '}
+                    {inviteData.inviteLink}
+                  </p>
+                </div>
+                {inviteData.password ? (
+                  <p className="text-xs text-muted-foreground font-sans pt-1">
+                    O cliente deve alterar a password após o primeiro login.
+                  </p>
+                ) : (
+                  <p className="text-xs text-muted-foreground font-sans pt-1">
+                    O cliente define a password ao clicar no link.
+                  </p>
+                )}
+              </div>
+
+              {/* Acções */}
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  onClick={handleCopyCredentials}
+                  className="flex-1"
+                  variant={copied ? 'outline' : 'default'}
+                >
+                  {copied ? (
+                    <>
+                      <Check className="h-4 w-4 mr-2" /> Copiado!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-4 w-4 mr-2" /> Copiar Mensagem
+                    </>
+                  )}
+                </Button>
+                <Button
+                  onClick={handleShareWhatsApp}
+                  className="flex-1 bg-[#25D366] hover:bg-[#1ebe5d] text-white border-0"
+                >
+                  <MessageCircle className="h-4 w-4 mr-2" />
+                  Enviar via WhatsApp
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

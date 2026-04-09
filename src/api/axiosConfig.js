@@ -29,7 +29,7 @@ const API_KEY = import.meta.env.VITE_API_KEY;
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 30000, // Tempo limite de 30 segundos
+  timeout: 60000, // Tempo limite de 60 segundos
   headers: {
     'Content-Type': 'application/json',
     ...(API_KEY && { 'X-API-KEY': API_KEY }),
@@ -85,10 +85,15 @@ api.interceptors.response.use(
       const { status, data } = error.response;
 
       if (status === 401) {
-        // Token expirado, inválido, ou utilizador inactivo.
+        // Token expirado, inválido, ou utilizador inativo.
         // Limpa o estado de autenticação e força novo login.
-        localStorage.removeItem('pt_token');
-        window.location.href = '/login';
+
+        const isOnLoginPage = window.location.pathname === '/login';
+
+        if (!isOnLoginPage) {
+          localStorage.removeItem('pt_token');
+          window.location.href = '/login';
+        }
       } else if (status === 422) {
         // Erro de validação do Pydantic.
         // O campo "detail" é um array com todos os erros de validação.

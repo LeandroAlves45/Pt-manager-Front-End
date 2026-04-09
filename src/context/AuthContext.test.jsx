@@ -19,7 +19,8 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { server } from '../test/__mocks__/server';
 import { http, HttpResponse } from 'msw';
-import { AuthProvider, useAuth } from './AuthContext';
+import { AuthProvider } from './AuthContext';
+import { useAuth } from './useAuth';
 import { TEST_TOKEN } from '../test/__mocks__/handlers';
 
 // URL base usada pelo axios nos testes (definida em vitest.config.js)

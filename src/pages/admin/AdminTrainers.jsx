@@ -1,7 +1,7 @@
 /**
- * AdminTrainers.jsx — lista de todos os trainers com acções de administração.
+ * AdminTrainers.jsx — lista de todos os Personal Trainers com acções de administração.
  *
- * Acções disponíveis por trainer:
+ * Acções disponíveis por Personal Trainer:
  *   - Suspender / Reativar (bloqueia/desbloqueia acesso)
  *   - Conceder / Revogar isenção de billing (free-forever)
  */

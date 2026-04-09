@@ -1,5 +1,5 @@
 /**
- * TrainerLayout.jsx — layout do dashboard do trainer.
+ * TrainerLayout.jsx — layout do dashboard do Personal Trainer.
  *
  * Envolve todas as rotas /trainer/* com:
  *   - A Sidebar de navegação (desktop fixa, mobile hamburger)
